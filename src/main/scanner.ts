@@ -46,7 +46,7 @@ let status: ScanStatus = {
   page: 0,
   totalPages: 0,
   found: 0,
-  message: 'In asteptare',
+  message: 'Idle',
   lastFullScan: null,
   lastFreeScan: null,
   nextScanAt: null,
@@ -94,7 +94,7 @@ async function withRetry<T>(
       const http = err instanceof SteamHttpError ? err : null
       if (signal.aborted || !http?.retryable || attempt >= waits.length) throw err
       const wait = http.retryAfterMs ?? waits[attempt]
-      setStatus({ message: `${label} — Steam a limitat cererile, reiau in ${Math.round(wait / 1000)}s` })
+      setStatus({ message: `${label} — Steam rate-limited us, retrying in ${Math.round(wait / 1000)}s` })
       await sleep(wait)
       if (signal.aborted) throw err
     }
@@ -111,10 +111,10 @@ export async function scanFree(): Promise<DealEvent[]> {
   const signal = abort.signal
   try {
     const cfg = await loadConfig()
-    setStatus({ phase: 'free', message: 'Verific jocurile devenite gratis', error: null })
+    setStatus({ phase: 'free', message: 'Checking for games that went free', error: null })
 
     const fresh = await withRetry(
-      'Jocuri gratis',
+      'Free games',
       () => fetchFreeToKeep(cfg.countryCode, signal),
       signal
     )
@@ -133,14 +133,14 @@ export async function scanFree(): Promise<DealEvent[]> {
 
     setStatus({
       phase: 'idle',
-      message: `${fresh.length} ${fresh.length === 1 ? 'joc gratis' : 'jocuri gratis'} acum`,
+      message: `${fresh.length} ${fresh.length === 1 ? 'game is' : 'games are'} free right now`,
       lastFreeScan: new Date().toISOString(),
       found: fresh.length
     })
     return events
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    setStatus({ phase: 'error', message: 'Verificarea a esuat', error: msg })
+    setStatus({ phase: 'error', message: 'Check failed', error: msg })
     return []
   } finally {
     running = false
@@ -165,7 +165,7 @@ export async function scanFull(): Promise<DealEvent[]> {
       totalPages: 0,
       found: 0,
       error: null,
-      message: seeded ? 'Scanez ofertele' : 'Prima scanare, construiesc referinta'
+      message: seeded ? 'Scanning deals' : 'First scan, building the baseline'
     })
 
     const deals: Deal[] = []
@@ -175,7 +175,7 @@ export async function scanFull(): Promise<DealEvent[]> {
       if (signal.aborted) break
 
       const res = await withRetry(
-        `Pagina ${page + 1}`,
+        `Page ${page + 1}`,
         () =>
           fetchDiscountedPage(
             {
@@ -202,22 +202,22 @@ export async function scanFull(): Promise<DealEvent[]> {
         page: page + 1,
         totalPages,
         found: deals.length,
-        message: seeded ? 'Scanez ofertele' : 'Prima scanare, construiesc referinta'
+        message: seeded ? 'Scanning deals' : 'First scan, building the baseline'
       })
 
       if (res.received < QUERY_PAGE) break
       await sleep(cfg.requestDelayMs)
     }
 
-    if (!deals.length) throw new Error('Steam n-a intors nicio oferta')
+    if (!deals.length) throw new Error('Steam returned no deals')
 
     // lista jocurilor la -100% vine din cautarea veche, care e singura care le
     // filtreaza exact; o cerere in plus care face pragul cel mai important sigur
     if (!signal.aborted) {
-      setStatus({ phase: 'free', message: 'Verific jocurile devenite gratis' })
+      setStatus({ phase: 'free', message: 'Checking for games that went free' })
       try {
         const free = await withRetry(
-          'Jocuri gratis',
+          'Free games',
           () => fetchFreeToKeep(cfg.countryCode, signal),
           signal
         )
@@ -236,7 +236,7 @@ export async function scanFull(): Promise<DealEvent[]> {
     // scanarea urmatoare ar crede ca tot ce lipseste tocmai a intrat la reducere
     // si ar trimite mii de alerte false
     if (signal.aborted) {
-      setStatus({ phase: 'idle', message: 'Scanare oprită, catalogul a rămas neatins' })
+      setStatus({ phase: 'idle', message: 'Scan stopped, the catalog was left untouched' })
       return []
     }
 
@@ -250,15 +250,15 @@ export async function scanFull(): Promise<DealEvent[]> {
     setStatus({
       phase: 'idle',
       message: seeded
-        ? `${deals.length} oferte, ${events.length} intrari noi in praguri`
-        : `${deals.length} oferte inregistrate; de acum alertez la schimbari`,
+        ? `${deals.length} deals, ${events.length} new threshold entries`
+        : `${deals.length} deals recorded; from now on I alert on changes`,
       lastFullScan: new Date().toISOString(),
       lastFreeScan: new Date().toISOString()
     })
     return events
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    setStatus({ phase: 'error', message: 'Scanarea a esuat', error: msg })
+    setStatus({ phase: 'error', message: 'Scan failed', error: msg })
     return []
   } finally {
     running = false

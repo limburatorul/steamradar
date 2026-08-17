@@ -7,6 +7,8 @@ import type {
   ScanStatus,
   StatsSummary,
   Tier,
+  UpdateInfo,
+  UpdateProgress,
   WatchItem
 } from '../shared/types'
 
@@ -53,6 +55,25 @@ const api = {
       const listener = (_e: unknown, s: ScanStatus): void => cb(s)
       ipcRenderer.on('scan:status', listener)
       return () => ipcRenderer.removeListener('scan:status', listener)
+    }
+  },
+
+  update: {
+    check: (): Promise<UpdateInfo> => ipcRenderer.invoke('update:check'),
+    download: (info: UpdateInfo): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('update:download', info),
+    identity: (): Promise<{ ok: boolean; reason: string }> =>
+      ipcRenderer.invoke('update:identity'),
+    /** Notificarea de la pornire, cand exista o versiune mai noua. */
+    onAvailable: (cb: (info: UpdateInfo) => void): (() => void) => {
+      const listener = (_e: unknown, info: UpdateInfo): void => cb(info)
+      ipcRenderer.on('update:available', listener)
+      return () => ipcRenderer.removeListener('update:available', listener)
+    },
+    onProgress: (cb: (p: UpdateProgress) => void): (() => void) => {
+      const listener = (_e: unknown, p: UpdateProgress): void => cb(p)
+      ipcRenderer.on('update:progress', listener)
+      return () => ipcRenderer.removeListener('update:progress', listener)
     }
   },
 

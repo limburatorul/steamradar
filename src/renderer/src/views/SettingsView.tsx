@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
-import type { AppConfig } from '@shared/types'
+import type { AppConfig, UpdateInfo } from '@shared/types'
 
-/** Tarile pentru care Steam da preturi in euro; codul decide moneda, nu limba. */
+/** Codul de tara decide moneda in care raspunde Steam, nu limba. */
 const COUNTRIES: Array<[string, string]> = [
-  ['RO', 'România (EUR)'],
-  ['DE', 'Germania (EUR)'],
-  ['FR', 'Franța (EUR)'],
-  ['PL', 'Polonia (PLN)'],
-  ['UK', 'Marea Britanie (GBP)'],
-  ['US', 'Statele Unite (USD)']
+  ['RO', 'Romania (EUR)'],
+  ['DE', 'Germany (EUR)'],
+  ['FR', 'France (EUR)'],
+  ['PL', 'Poland (PLN)'],
+  ['UK', 'United Kingdom (GBP)'],
+  ['US', 'United States (USD)']
 ]
 
 interface Props {
@@ -19,29 +19,41 @@ interface Props {
 export default function SettingsView({ config, onChange }: Props): React.JSX.Element {
   const [folder, setFolder] = useState('')
   const [version, setVersion] = useState('')
+  const [identity, setIdentity] = useState<{ ok: boolean; reason: string } | null>(null)
+  const [update, setUpdate] = useState<UpdateInfo | null>(null)
+  const [checking, setChecking] = useState(false)
 
   useEffect(() => {
     void window.api.config.dataFolder().then(setFolder)
     void window.api.version().then(setVersion)
+    void window.api.update.identity().then(setIdentity)
   }, [])
+
+  const checkUpdate = (): void => {
+    setChecking(true)
+    void window.api.update.check().then((info) => {
+      setUpdate(info)
+      setChecking(false)
+    })
+  }
 
   return (
     <>
       <div className="toolbar">
-        <h1>Setări</h1>
+        <h1>Settings</h1>
         <span className="sub">SteamRadar {version}</span>
       </div>
 
       <div className="content">
         <div className="settings">
           <div className="card">
-            <h2>Praguri</h2>
+            <h2>Thresholds</h2>
             <p className="hint">
-              Sub cât să considere aplicația că un joc merită o alertă. Gratis e mereu primul prag
-              și nu se poate opri din praguri, doar din notificări.
+              How cheap a game has to get before it is worth an alert. Free is always the first
+              threshold and cannot be turned off here, only in notifications.
             </p>
             <div className="row">
-              <label className="k">Pragul de jos</label>
+              <label className="k">Lower threshold</label>
               <input
                 type="number"
                 min={1}
@@ -49,10 +61,10 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
                 value={config.thresholdLow}
                 onChange={(e) => onChange({ thresholdLow: Number(e.target.value) })}
               />
-              <span className="note">implicit 5</span>
+              <span className="note">default 5</span>
             </div>
             <div className="row">
-              <label className="k">Pragul de sus</label>
+              <label className="k">Upper threshold</label>
               <input
                 type="number"
                 min={1}
@@ -60,10 +72,10 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
                 value={config.thresholdHigh}
                 onChange={(e) => onChange({ thresholdHigh: Number(e.target.value) })}
               />
-              <span className="note">implicit 10</span>
+              <span className="note">default 10</span>
             </div>
             <div className="row">
-              <label className="k">Reducere minimă</label>
+              <label className="k">Minimum discount</label>
               <input
                 type="number"
                 min={0}
@@ -71,36 +83,37 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
                 value={config.minDiscountPct}
                 onChange={(e) => onChange({ minDiscountPct: Number(e.target.value) })}
               />
-              <span className="note">% — ignoră ofertele mai slabe de atât</span>
+              <span className="note">% — ignore weaker deals entirely</span>
             </div>
             <div className="row">
-              <label className="k">Include și DLC-uri</label>
+              <label className="k">Include DLC</label>
               <input
                 type="checkbox"
                 checked={config.includeDlc}
                 onChange={(e) => onChange({ includeDlc: e.target.checked })}
               />
-              <span className="note">
-                DLC-urile la reducere sunt de două ori mai multe decât jocurile
-              </span>
+              <span className="note">there are twice as many discounted DLCs as games</span>
             </div>
           </div>
 
           <div className="card">
-            <h2>Notificări</h2>
+            <h2>Notifications</h2>
             <p className="hint">
-              Windows nu afișează o coadă nesfârșită de notificări — când vin multe deodată le
-              aruncă pe cele din spate. De aceea modul grupat trimite una singură pe prag, cu
-              numărul și primele nume. Jocurile devenite gratis primesc oricum notificare proprie.
+              Windows does not queue toasts forever — when many arrive at once it drops the ones
+              behind. A single scan can push dozens of games under 5, and hundreds during a big
+              sale. So grouped mode sends one toast per threshold, with the count and the first
+              names. Games that went free always get their own toast either way.
             </p>
             <div className="row">
-              <label className="k">Anunță-mă la</label>
+              <label className="k">Alert me about</label>
               <div className="pill-row">
                 <button
                   className={`pill${config.notify.free ? ' on' : ''}`}
-                  onClick={() => onChange({ notify: { ...config.notify, free: !config.notify.free } })}
+                  onClick={() =>
+                    onChange({ notify: { ...config.notify, free: !config.notify.free } })
+                  }
                 >
-                  Gratis
+                  Free
                 </button>
                 <button
                   className={`pill${config.notify.under5 ? ' on' : ''}`}
@@ -108,7 +121,7 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
                     onChange({ notify: { ...config.notify, under5: !config.notify.under5 } })
                   }
                 >
-                  Sub {config.thresholdLow}
+                  Under {config.thresholdLow}
                 </button>
                 <button
                   className={`pill${config.notify.under10 ? ' on' : ''}`}
@@ -116,42 +129,52 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
                     onChange({ notify: { ...config.notify, under10: !config.notify.under10 } })
                   }
                 >
-                  Sub {config.thresholdHigh}
+                  Under {config.thresholdHigh}
                 </button>
               </div>
             </div>
             <div className="row">
-              <label className="k">Mod</label>
+              <label className="k">Mode</label>
               <select
                 value={config.notifyMode}
                 onChange={(e) =>
                   onChange({ notifyMode: e.target.value as AppConfig['notifyMode'] })
                 }
               >
-                <option value="grouped">Grupat — una pe prag</option>
-                <option value="individual">Individual — una pe joc</option>
+                <option value="grouped">Grouped — one per threshold</option>
+                <option value="individual">Individual — one per game</option>
               </select>
             </div>
             <div className="row">
-              <label className="k">Sunet</label>
+              <label className="k">Sound</label>
               <input
                 type="checkbox"
                 checked={config.notifySound}
                 onChange={(e) => onChange({ notifySound: e.target.checked })}
               />
             </div>
+            <div className="row">
+              <label className="k">Shown as</label>
+              <span className={`note${identity && !identity.ok ? ' warn' : ''}`}>
+                {identity
+                  ? identity.ok
+                    ? 'SteamRadar — Windows knows the app by its Start Menu shortcut'
+                    : `Electron — ${identity.reason}`
+                  : '…'}
+              </span>
+            </div>
           </div>
 
           <div className="card">
-            <h2>Scanare</h2>
+            <h2>Scanning</h2>
             <p className="hint">
-              Scanarea completă parcurge toate jocurile la reducere, câte 500 la fiecare cerere —
-              în jur de 13 cereri și 30 de secunde. Verificarea jocurilor devenite gratis costă o
-              singură cerere, deci poate rula mult mai des. Steam răspunde 429 peste vreo 20 de
-              cereri într-o rafală, dar aplicația așteaptă și reia singură.
+              A full scan walks every discounted game on Steam, 500 per request — about 13 requests
+              and 30 seconds. Checking for games that went free costs a single request, so it can
+              run far more often. Steam answers 429 past roughly 20 requests in a burst, but the
+              app waits it out and resumes on its own.
             </p>
             <div className="row">
-              <label className="k">Verific jocurile gratis la</label>
+              <label className="k">Check free games every</label>
               <input
                 type="number"
                 min={2}
@@ -159,10 +182,10 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
                 value={config.freeIntervalMin}
                 onChange={(e) => onChange({ freeIntervalMin: Number(e.target.value) })}
               />
-              <span className="note">minute</span>
+              <span className="note">minutes</span>
             </div>
             <div className="row">
-              <label className="k">Scanare completă la</label>
+              <label className="k">Full scan every</label>
               <input
                 type="number"
                 min={15}
@@ -170,10 +193,10 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
                 value={config.fullIntervalMin}
                 onChange={(e) => onChange({ fullIntervalMin: Number(e.target.value) })}
               />
-              <span className="note">minute</span>
+              <span className="note">minutes</span>
             </div>
             <div className="row">
-              <label className="k">Pauză între cereri</label>
+              <label className="k">Delay between requests</label>
               <input
                 type="number"
                 min={300}
@@ -182,10 +205,10 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
                 value={config.requestDelayMs}
                 onChange={(e) => onChange({ requestDelayMs: Number(e.target.value) })}
               />
-              <span className="note">ms — sub 800 crește șansa de 429</span>
+              <span className="note">ms — below 800 raises the odds of a 429</span>
             </div>
             <div className="row">
-              <label className="k">Maxim pagini</label>
+              <label className="k">Page cap</label>
               <input
                 type="number"
                 min={5}
@@ -193,10 +216,10 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
                 value={config.maxPages}
                 onChange={(e) => onChange({ maxPages: Number(e.target.value) })}
               />
-              <span className="note">a câte 500 de jocuri; 40 e de trei ori mai mult decât trebuie</span>
+              <span className="note">500 games each; 40 is three times more than needed</span>
             </div>
             <div className="row">
-              <label className="k">Țara pentru prețuri</label>
+              <label className="k">Pricing country</label>
               <select
                 value={config.countryCode}
                 onChange={(e) => onChange({ countryCode: e.target.value })}
@@ -211,9 +234,9 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
           </div>
 
           <div className="card">
-            <h2>Pornire</h2>
+            <h2>Startup</h2>
             <div className="row">
-              <label className="k">Pornește cu Windows</label>
+              <label className="k">Start with Windows</label>
               <input
                 type="checkbox"
                 checked={config.autoStart}
@@ -221,7 +244,7 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
               />
             </div>
             <div className="row">
-              <label className="k">Pornește minimizat în tray</label>
+              <label className="k">Start minimized to tray</label>
               <input
                 type="checkbox"
                 checked={config.startMinimized}
@@ -229,26 +252,44 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
               />
             </div>
             <div className="row">
-              <label className="k">Închiderea ferestrei o ascunde</label>
+              <label className="k">Closing the window hides it</label>
               <input
                 type="checkbox"
                 checked={config.closeToTray}
                 onChange={(e) => onChange({ closeToTray: e.target.checked })}
               />
+              <span className="note">unchecked, closing the window stops the watching too</span>
+            </div>
+          </div>
+
+          <div className="card">
+            <h2>Updates</h2>
+            <p className="hint">
+              The portable build updates itself: it downloads the new .exe next to the current one,
+              starts it and deletes the old file on the next launch.
+            </p>
+            <div className="row">
+              <button onClick={checkUpdate} disabled={checking}>
+                {checking ? 'Checking…' : 'Check for updates'}
+              </button>
               <span className="note">
-                debifat, închiderea ferestrei oprește și supravegherea
+                {update
+                  ? update.available
+                    ? `Version ${update.latestVersion} is available`
+                    : update.error
+                      ? update.error
+                      : `You are on the latest version (${update.currentVersion})`
+                  : ''}
               </span>
             </div>
           </div>
 
           <div className="card">
-            <h2>Date</h2>
+            <h2>Data</h2>
             <p className="hint">
-              Catalogul, istoricul și lista de urmărire stau în <code>{folder}</code>.
+              The catalog, the history and the watchlist live in <code>{folder}</code>.
             </p>
-            <button onClick={() => void window.api.config.openDataFolder()}>
-              Deschide folderul
-            </button>
+            <button onClick={() => void window.api.config.openDataFolder()}>Open the folder</button>
           </div>
         </div>
       </div>

@@ -549,3 +549,16 @@ input[type='checkbox'] {
   justify-content: center;
   padding: 18px 0 4px;
 }
+
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  background: var(--accent-dim);
+  border-bottom: 1px solid var(--border);
+}
+
+.note.warn {
+  color: var(--warn);
+}

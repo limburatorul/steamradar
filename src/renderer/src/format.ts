@@ -23,27 +23,17 @@ export function eventToDeal(e: DealEvent): Deal {
   }
 }
 
-/** Steam e interogat mereu in engleza, ca sa pot citi acelasi tipar indiferent
- *  de tara; eticheta o traduc aici, la afisare. */
-const REVIEWS: Record<string, string> = {
-  'Overwhelmingly Positive': 'Copleșitor pozitive',
-  'Very Positive': 'Foarte pozitive',
-  Positive: 'Pozitive',
-  'Mostly Positive': 'Majoritar pozitive',
-  Mixed: 'Mixte',
-  'Mostly Negative': 'Majoritar negative',
-  Negative: 'Negative',
-  'Very Negative': 'Foarte negative',
-  'Overwhelmingly Negative': 'Copleșitor negative',
-  'Need more user reviews to generate a score': 'Prea puține recenzii'
-}
-
+/**
+ * Steam e interogat mereu in engleza, ca eticheta recenziilor sa aiba acelasi
+ * tipar indiferent de tara, deci de tradus nu e nimic - dar jocurile cu foarte
+ * putine recenzii n-au eticheta, ci chiar textul "6 user reviews", care ar
+ * dubla numarul afisat oricum alaturi.
+ */
 export function reviewLabel(summary: string | null): string | null {
   if (!summary) return null
-  // jocurile cu foarte putine recenzii n-au eticheta, ci chiar textul
-  // "6 user reviews"; procentul si numarul se arata oricum langa, deci il sar
   if (/^[\d,. ]+ user reviews$/i.test(summary)) return null
-  return REVIEWS[summary] ?? summary
+  if (/^Need more user reviews/i.test(summary)) return 'Too few reviews'
+  return summary
 }
 
 export function reviewTone(pct: number | null): string {
@@ -54,31 +44,35 @@ export function reviewTone(pct: number | null): string {
 }
 
 export function count(n: number | null): string {
-  return n == null ? '' : n.toLocaleString('ro-RO')
+  return n == null ? '' : n.toLocaleString('en-US')
 }
 
 export function timeAgo(iso: string): string {
   const min = Math.round((Date.now() - Date.parse(iso)) / 60000)
-  if (min < 1) return 'acum'
-  if (min < 60) return `acum ${min} min`
+  if (min < 1) return 'just now'
+  if (min < 60) return `${min} min ago`
   const h = Math.round(min / 60)
-  if (h < 24) return `acum ${h} h`
+  if (h < 24) return `${h} h ago`
   const d = Math.round(h / 24)
-  if (d < 30) return `acum ${d} ${d === 1 ? 'zi' : 'zile'}`
-  return new Date(iso).toLocaleDateString('ro-RO')
+  if (d < 30) return `${d} ${d === 1 ? 'day' : 'days'} ago`
+  return new Date(iso).toLocaleDateString('en-GB')
 }
 
 /** Cat mai tine reducerea. Steam da termenul doar pentru o parte din oferte. */
 export function endsIn(unix: number | null): string | null {
   if (!unix) return null
   const h = Math.round((unix * 1000 - Date.now()) / 3600_000)
-  if (h <= 0) return 'expiră acum'
-  if (h < 24) return `încă ${h} h`
+  if (h <= 0) return 'ending now'
+  if (h < 24) return `${h} h left`
   const d = Math.round(h / 24)
-  return `încă ${d} ${d === 1 ? 'zi' : 'zile'}`
+  return `${d} ${d === 1 ? 'day' : 'days'} left`
 }
 
 export function clock(iso: string | null): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
+export function num(n: number | null | undefined): string {
+  return n == null ? '' : n.toLocaleString('en-US')
 }

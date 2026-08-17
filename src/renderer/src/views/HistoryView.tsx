@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Deal, DealEvent, Tier } from '@shared/types'
 import { TIERS, TIER_LABEL } from '@shared/types'
 import DealRow from '../components/DealRow'
-import { eventToDeal, timeAgo } from '../format'
+import { eventToDeal, num, timeAgo } from '../format'
 
 interface Props {
   watched: Set<string>
@@ -37,19 +37,15 @@ export default function HistoryView({
   return (
     <>
       <div className="toolbar">
-        <h1>Istoric alerte</h1>
-        <span className="sub">{shown.length.toLocaleString('ro-RO')} intrări</span>
+        <h1>Alert history</h1>
+        <span className="sub">{num(shown.length)} entries</span>
         <div className="spacer" />
         <div className="pill-row">
           <button className={`pill${tier === null ? ' on' : ''}`} onClick={() => setTier(null)}>
-            Toate
+            All
           </button>
           {TIERS.map((t) => (
-            <button
-              key={t}
-              className={`pill${tier === t ? ' on' : ''}`}
-              onClick={() => setTier(t)}
-            >
+            <button key={t} className={`pill${tier === t ? ' on' : ''}`} onClick={() => setTier(t)}>
               {TIER_LABEL[t]}
             </button>
           ))}
@@ -60,21 +56,21 @@ export default function HistoryView({
             checked={watchedOnly}
             onChange={(e) => setWatchedOnly(e.target.checked)}
           />
-          <span className="note">doar urmărite</span>
+          <span className="note">watchlist only</span>
         </label>
         <button
           className="ghost danger"
           onClick={() => void window.api.events.clear().then(() => setEvents([]))}
         >
-          Golește
+          Clear
         </button>
       </div>
 
       <div className="content">
         {shown.length === 0 ? (
           <div className="empty">
-            <h3>Istoricul e gol</h3>
-            <p>Apar aici toate jocurile care intră într-un prag, cu ora și prețul de atunci.</p>
+            <h3>History is empty</h3>
+            <p>Every game that drops into a threshold lands here, with the time and the price.</p>
           </div>
         ) : (
           <div className="deals">
@@ -88,8 +84,8 @@ export default function HistoryView({
                   <>
                     <span className={`badge small tier-${e.tier}`}>{TIER_LABEL[e.tier]}</span>
                     <span className="event-time">{timeAgo(e.at)}</span>
-                    {e.fromPriceText && <span className="event-time">era {e.fromPriceText}</span>}
-                    {e.watched && <span className="event-time">★ urmărit</span>}
+                    {e.fromPriceText && <span className="event-time">was {e.fromPriceText}</span>}
+                    {e.watched && <span className="event-time">★ watched</span>}
                   </>
                 }
               />

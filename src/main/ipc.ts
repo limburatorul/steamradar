@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
-import type { AppConfig, DealEvent, StatsSummary, WatchItem } from '../shared/types'
+import type { AppConfig, DealEvent, StatsSummary, UpdateInfo, WatchItem } from '../shared/types'
+import { checkForUpdate, downloadAndRestart } from './updater'
+import { notificationIdentity } from './shortcut'
 import { applyQuery, type DealQuery, type DealQueryResult } from '../shared/query'
 import { dataRoot, loadConfig, saveConfig } from './config'
 import {
@@ -109,6 +111,15 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('scan:full', () => scanFull())
   ipcMain.handle('scan:free', () => scanFree())
   ipcMain.handle('scan:cancel', () => cancelScan())
+
+  ipcMain.handle('update:check', () => checkForUpdate())
+  ipcMain.handle('update:download', (_e, info: UpdateInfo) =>
+    downloadAndRestart(info, (p) => {
+      const win = getWindow()
+      if (win && !win.isDestroyed()) win.webContents.send('update:progress', p)
+    })
+  )
+  ipcMain.handle('update:identity', () => notificationIdentity())
 
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('shell:open-external', async (_e, url: string) => {

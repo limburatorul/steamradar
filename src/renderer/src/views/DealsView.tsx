@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react'
 import type { Deal, Tier } from '@shared/types'
 import type { DealQuery, SortKey } from '@shared/query'
 import DealRow from '../components/DealRow'
+import { num } from '../format'
 
 const PAGE = 60
 
 const SORTS: Array<{ k: SortKey; label: string }> = [
-  { k: 'discount', label: 'Reducere' },
-  { k: 'price', label: 'Preț crescător' },
-  { k: 'priceDesc', label: 'Preț descrescător' },
-  { k: 'reviewPct', label: 'Scor recenzii' },
-  { k: 'reviews', label: 'Popularitate' },
-  { k: 'name', label: 'Nume' }
+  { k: 'discount', label: 'Discount' },
+  { k: 'price', label: 'Price, low to high' },
+  { k: 'priceDesc', label: 'Price, high to low' },
+  { k: 'reviewPct', label: 'Review score' },
+  { k: 'reviews', label: 'Popularity' },
+  { k: 'name', label: 'Name' }
 ]
 
 interface Props {
@@ -41,8 +42,8 @@ export default function DealsView({
   const [reviewedOnly, setReviewedOnly] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  // pragul si sortarea se reseteaza cand schimb sectiunea, altfel as ramane cu
-  // filtre de la ecranul anterior si lista ar parea goala fara motiv
+  // filtrele se reseteaza cand schimb sectiunea, altfel as ramane cu setari de
+  // la ecranul anterior si lista ar parea goala fara motiv
   useEffect(() => {
     setSort(tier === 'free' ? 'reviews' : 'discount')
     setLimit(PAGE)
@@ -54,15 +55,18 @@ export default function DealsView({
     let alive = true
     const q: DealQuery = { tier, search, sort, minDiscount, reviewedOnly, limit, offset: 0 }
     // mica intarziere ca sa nu interoghez la fiecare litera tastata
-    const t = setTimeout(() => {
-      setLoading(true)
-      void window.api.deals.query(q).then((res) => {
-        if (!alive) return
-        setItems(res.items)
-        setTotal(res.total)
-        setLoading(false)
-      })
-    }, search ? 180 : 0)
+    const t = setTimeout(
+      () => {
+        setLoading(true)
+        void window.api.deals.query(q).then((res) => {
+          if (!alive) return
+          setItems(res.items)
+          setTotal(res.total)
+          setLoading(false)
+        })
+      },
+      search ? 180 : 0
+    )
     return () => {
       alive = false
       clearTimeout(t)
@@ -73,13 +77,11 @@ export default function DealsView({
     <>
       <div className="toolbar">
         <h1>{title}</h1>
-        <span className="sub">
-          {loading ? 'se încarcă…' : `${total.toLocaleString('ro-RO')} rezultate`}
-        </span>
+        <span className="sub">{loading ? 'loading…' : `${num(total)} results`}</span>
         <div className="spacer" />
         <input
           type="search"
-          placeholder="Caută după nume"
+          placeholder="Search by name"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)
@@ -100,10 +102,10 @@ export default function DealsView({
             setLimit(PAGE)
           }}
         >
-          <option value={0}>Orice reducere</option>
-          <option value={50}>-50% sau mai mult</option>
-          <option value={75}>-75% sau mai mult</option>
-          <option value={90}>-90% sau mai mult</option>
+          <option value={0}>Any discount</option>
+          <option value={50}>-50% or more</option>
+          <option value={75}>-75% or more</option>
+          <option value={90}>-90% or more</option>
         </select>
         <label className="row" style={{ padding: 0, gap: 6 }}>
           <input
@@ -111,14 +113,14 @@ export default function DealsView({
             checked={reviewedOnly}
             onChange={(e) => setReviewedOnly(e.target.checked)}
           />
-          <span className="note">doar cu recenzii</span>
+          <span className="note">reviewed only</span>
         </label>
       </div>
 
       <div className="content">
         {!loading && !items.length ? (
           <div className="empty">
-            <h3>Nimic aici</h3>
+            <h3>Nothing here</h3>
             <p>{hint}</p>
           </div>
         ) : (
@@ -137,7 +139,7 @@ export default function DealsView({
         {items.length < total && (
           <div className="load-more">
             <button onClick={() => setLimit(limit + PAGE * 2)}>
-              Mai arată {Math.min(PAGE * 2, total - items.length)}
+              Show {Math.min(PAGE * 2, total - items.length)} more
             </button>
           </div>
         )}

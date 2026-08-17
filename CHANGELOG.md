@@ -3,6 +3,24 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.2.0] — 2026-08-17
+
+### Adăugat
+
+- **Auto-actualizare** pentru varianta portabilă, după tiparul din Game Browser:
+  verificare la pornire (tăcută dacă nu e nimic nou) și buton în Settings,
+  descărcarea `.exe`-ului nou în `PORTABLE_EXECUTABLE_DIR`, verificarea mărimii
+  față de ce anunță GitHub, pornire detașată și ștergerea versiunilor vechi la
+  următoarea pornire, cu reîncercări la 5 și 20 de secunde.
+- **Notificările apar sub numele aplicației**, nu „electron.app.Electron".
+  Windows ia numele din scurtătura de Start Menu a cărei AppUserModelID se
+  potrivește cu cea declarată de proces, deci aplicația își scrie singură
+  scurtătura la prima pornire. Settings arată dacă a reușit.
+
+### Schimbat
+
+- Interfața, notificările și meniul din tray sunt în engleză.
+
 ## [0.1.0] — 2026-08-17
 
 Prima versiune.

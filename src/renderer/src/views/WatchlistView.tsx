@@ -12,8 +12,8 @@ interface Props {
 
 /**
  * Lista de urmarire e singurul loc care alerteaza si la scaderi care nu ating
- * niciun prag: daca ai pus ochii pe un joc de 40 EUR, vrei sa stii cand ajunge
- * la 24 EUR, chiar daca nu intra nici macar sub 10.
+ * niciun prag: daca ai pus ochii pe un joc de 40, vrei sa stii cand ajunge la
+ * 24, chiar daca nu intra nici macar sub 10.
  */
 export default function WatchlistView({
   watchlist,
@@ -57,17 +57,17 @@ export default function WatchlistView({
   return (
     <>
       <div className="toolbar">
-        <h1>Urmărite</h1>
-        <span className="sub">{watchlist.length} jocuri</span>
+        <h1>Watchlist</h1>
+        <span className="sub">{watchlist.length} games</span>
       </div>
 
       <div className="content">
         {watchlist.length === 0 ? (
           <div className="empty">
-            <h3>Nu urmărești niciun joc</h3>
+            <h3>You are not watching any game</h3>
             <p>
-              Apasă steaua de pe orice ofertă. Jocurile urmărite te anunță la orice scădere de
-              preț, nu doar când trec de praguri — și le poți pune un preț țintă al tău.
+              Hit the star on any deal. Watched games alert you on every price drop, not only when
+              they cross a threshold — and you can give each one your own target price.
             </p>
           </div>
         ) : (
@@ -83,10 +83,10 @@ export default function WatchlistView({
                   onToggleWatch={onToggleWatch}
                   aside={
                     <>
-                      <span className="event-time">adăugat {timeAgo(w.addedAt)}</span>
-                      {!onSale && <span className="event-time">nu e la reducere acum</span>}
+                      <span className="event-time">added {timeAgo(w.addedAt)}</span>
+                      {!onSale && <span className="event-time">not on sale right now</span>}
                       <label className="note" style={{ display: 'flex', gap: 5 }}>
-                        țintă
+                        target
                         <input
                           type="number"
                           min={0}

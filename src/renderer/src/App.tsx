@@ -5,7 +5,8 @@ import DealsView from './views/DealsView'
 import HistoryView from './views/HistoryView'
 import SettingsView from './views/SettingsView'
 import WatchlistView from './views/WatchlistView'
-import { clock } from './format'
+import UpdateBanner from './components/UpdateBanner'
+import { clock, num } from './format'
 
 type Page = 'radar' | 'free' | 'under5' | 'under10' | 'top' | 'watch' | 'history' | 'settings'
 
@@ -43,8 +44,7 @@ export default function App(): React.JSX.Element {
   }
 
   const toggleWatch = (deal: Deal): void => {
-    const exists = watchlist.some((w) => w.key === deal.key)
-    if (exists) {
+    if (watchlist.some((w) => w.key === deal.key)) {
       void window.api.watch.remove(deal.key).then(setWatchlist)
       return
     }
@@ -71,8 +71,8 @@ export default function App(): React.JSX.Element {
   const scanning = status ? status.phase !== 'idle' && status.phase !== 'error' : false
   const pct =
     status && status.totalPages > 0 ? Math.round((status.page / status.totalPages) * 100) : 0
-
-  const goTier = (t: Tier): void => setPage(t === 'free' ? 'free' : t)
+  const low = config?.thresholdLow ?? 5
+  const high = config?.thresholdHigh ?? 10
 
   return (
     <div className="app">
@@ -94,54 +94,52 @@ export default function App(): React.JSX.Element {
             {stats && stats.unseen > 0 && <span className="dot">{stats.unseen}</span>}
           </button>
 
-          <div className="nav-group">Praguri</div>
+          <div className="nav-group">Thresholds</div>
           <button
             className={`nav-item${page === 'free' ? ' active' : ''}`}
             onClick={() => setPage('free')}
           >
-            Gratis acum <span className="count">{stats?.free ?? ''}</span>
+            Free right now <span className="count">{stats?.free ?? ''}</span>
           </button>
           <button
             className={`nav-item${page === 'under5' ? ' active' : ''}`}
             onClick={() => setPage('under5')}
           >
-            Sub {config?.thresholdLow ?? 5}{' '}
-            <span className="count">{stats?.under5?.toLocaleString('ro-RO') ?? ''}</span>
+            Under {low} <span className="count">{stats ? num(stats.under5) : ''}</span>
           </button>
           <button
             className={`nav-item${page === 'under10' ? ' active' : ''}`}
             onClick={() => setPage('under10')}
           >
-            Sub {config?.thresholdHigh ?? 10}{' '}
-            <span className="count">{stats?.under10?.toLocaleString('ro-RO') ?? ''}</span>
+            Under {high} <span className="count">{stats ? num(stats.under10) : ''}</span>
           </button>
 
-          <div className="nav-group">Vânătoare</div>
+          <div className="nav-group">Hunting</div>
           <button
             className={`nav-item${page === 'top' ? ' active' : ''}`}
             onClick={() => setPage('top')}
           >
-            Top reduceri <span className="count">{stats?.tracked?.toLocaleString('ro-RO') ?? ''}</span>
+            Top discounts <span className="count">{stats ? num(stats.tracked) : ''}</span>
           </button>
           <button
             className={`nav-item${page === 'watch' ? ' active' : ''}`}
             onClick={() => setPage('watch')}
           >
-            Urmărite <span className="count">{watchlist.length || ''}</span>
+            Watchlist <span className="count">{watchlist.length || ''}</span>
           </button>
           <button
             className={`nav-item${page === 'history' ? ' active' : ''}`}
             onClick={() => setPage('history')}
           >
-            Istoric alerte
+            Alert history
           </button>
 
-          <div className="nav-group">Aplicație</div>
+          <div className="nav-group">App</div>
           <button
             className={`nav-item${page === 'settings' ? ' active' : ''}`}
             onClick={() => setPage('settings')}
           >
-            Setări
+            Settings
           </button>
         </nav>
 
@@ -152,45 +150,48 @@ export default function App(): React.JSX.Element {
             </div>
           )}
           <div className={`line${status?.error ? ' err' : ''}`} title={status?.message}>
-            {status?.error ?? status?.message ?? 'Se pregătește'}
+            {status?.error ?? status?.message ?? 'Starting up'}
           </div>
           {scanning && status && status.totalPages > 0 && (
             <div className="line">
-              pagina {status.page} din {status.totalPages} · {status.found} oferte
+              page {status.page} of {status.totalPages} · {num(status.found)} deals
             </div>
           )}
           {!scanning && (
             <div className="line">
-              ultima scanare {clock(status?.lastFullScan ?? null)} · gratis{' '}
+              last full scan {clock(status?.lastFullScan ?? null)} · free{' '}
               {clock(status?.lastFreeScan ?? null)}
             </div>
           )}
           {scanning ? (
             <button className="ghost" onClick={() => void window.api.scan.cancel()}>
-              Oprește scanarea
+              Stop scanning
             </button>
           ) : (
             <button className="primary" onClick={() => void window.api.scan.full()}>
-              Scanează acum
+              Scan now
             </button>
           )}
         </div>
       </aside>
 
       <main className="main">
+        <UpdateBanner />
         {page === 'radar' && (
           <DashboardView
             watched={watched}
             onToggleWatch={toggleWatch}
-            onGoTo={goTier}
+            onGoTo={(t: Tier) => setPage(t)}
+            lowThreshold={low}
+            highThreshold={high}
             refreshKey={refreshKey}
           />
         )}
         {page === 'free' && (
           <DealsView
             tier="free"
-            title="Gratis acum"
-            hint="Nu e niciun joc la -100% în acest moment. Verific la fiecare câteva minute."
+            title="Free right now"
+            hint="No game is at -100% at the moment. I check every few minutes."
             watched={watched}
             onToggleWatch={toggleWatch}
             refreshKey={refreshKey}
@@ -199,8 +200,8 @@ export default function App(): React.JSX.Element {
         {page === 'under5' && (
           <DealsView
             tier="under5"
-            title={`Sub ${config?.thresholdLow ?? 5}`}
-            hint="Nicio ofertă sub prag. Scanează sau coboară filtrul de reducere."
+            title={`Under ${low}`}
+            hint="No deal under the threshold. Scan, or lower the discount filter."
             watched={watched}
             onToggleWatch={toggleWatch}
             refreshKey={refreshKey}
@@ -209,8 +210,8 @@ export default function App(): React.JSX.Element {
         {page === 'under10' && (
           <DealsView
             tier="under10"
-            title={`Sub ${config?.thresholdHigh ?? 10}`}
-            hint="Nicio ofertă în intervalul dintre praguri."
+            title={`Under ${high}`}
+            hint="Nothing in the band between the two thresholds."
             watched={watched}
             onToggleWatch={toggleWatch}
             refreshKey={refreshKey}
@@ -219,8 +220,8 @@ export default function App(): React.JSX.Element {
         {page === 'top' && (
           <DealsView
             tier={null}
-            title="Top reduceri"
-            hint="Catalogul e gol — pornește o scanare."
+            title="Top discounts"
+            hint="The catalog is empty — start a scan."
             watched={watched}
             onToggleWatch={toggleWatch}
             refreshKey={refreshKey}
@@ -242,9 +243,7 @@ export default function App(): React.JSX.Element {
             onSeen={reloadStats}
           />
         )}
-        {page === 'settings' && config && (
-          <SettingsView config={config} onChange={patchConfig} />
-        )}
+        {page === 'settings' && config && <SettingsView config={config} onChange={patchConfig} />}
       </main>
     </div>
   )

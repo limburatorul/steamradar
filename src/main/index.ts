@@ -6,7 +6,9 @@ import { registerIpc } from './ipc'
 import { setWindowOpener } from './notify'
 import { cancelScan, onStatus, scanFull, schedule, stopSchedule } from './scanner'
 import { getCatalog } from './store'
+import { ensureNotificationIdentity } from './shortcut'
 import { beginQuit, createTray, destroyTray, isQuitting, refreshTray } from './tray'
+import { checkForUpdate, cleanupOldExecutables, portableDir } from './updater'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -76,9 +78,9 @@ function createWindow(): void {
 app.on('second-instance', showWindow)
 
 app.whenReady().then(async () => {
-  // fara asta Windows nu leaga toast-urile de aplicatie si le arata cu numele
-  // "electron.app.Electron", sau nu le arata deloc
-  app.setAppUserModelId('ro.steamradar.app')
+  // declara AUMID-ul si scrie scurtatura din Start Menu care ii da numele:
+  // fara ea, Windows pune "electron.app.Electron" deasupra notificarilor
+  ensureNotificationIdentity()
 
   const cfg = await loadConfig()
   app.setLoginItemSettings({
@@ -93,6 +95,10 @@ app.whenReady().then(async () => {
 
   if (!process.argv.includes('--hidden') || !cfg.startMinimized) createWindow()
 
+  // curat executabilele vechi ramase langa cel curent, cu reincercari:
+  // procesul inlocuit poate tine inca lock pe fisierul lui
+  cleanupOldExecutables()
+
   // prima scanare porneste dupa ce fereastra e vizibila, ca sa nu para blocata;
   // daca s-a scanat de curand, astept programarea normala
   const cat = await getCatalog()
@@ -101,6 +107,18 @@ app.whenReady().then(async () => {
     setTimeout(() => void scanFull(), 4000)
   } else {
     schedule()
+  }
+
+  // verificarea de actualizare e tacuta daca nu exista versiune noua. Doar pe
+  // varianta portabila: altfel ar aparea un banner care ofera o actualizare ce
+  // n-are cum sa se instaleze, fiindca nu exista un exe langa care sa punem altul
+  if (portableDir()) {
+    setTimeout(async () => {
+      const info = await checkForUpdate()
+      if (info.available && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update:available', info)
+      }
+    }, 8000)
   }
 
   app.on('activate', () => {

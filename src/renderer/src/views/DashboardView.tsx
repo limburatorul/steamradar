@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import type { Deal, DealEvent, StatsSummary, Tier } from '@shared/types'
 import { TIER_LABEL } from '@shared/types'
 import DealRow from '../components/DealRow'
-import { eventToDeal, timeAgo } from '../format'
+import { eventToDeal, num, timeAgo } from '../format'
 
 interface Props {
   watched: Set<string>
   onToggleWatch: (deal: Deal) => void
   onGoTo: (tier: Tier) => void
+  lowThreshold: number
+  highThreshold: number
   refreshKey: number
 }
 
@@ -16,6 +18,8 @@ export default function DashboardView({
   watched,
   onToggleWatch,
   onGoTo,
+  lowThreshold,
+  highThreshold,
   refreshKey
 }: Props): React.JSX.Element {
   const [stats, setStats] = useState<StatsSummary | null>(null)
@@ -34,36 +38,36 @@ export default function DashboardView({
     <>
       <div className="toolbar">
         <h1>Radar</h1>
-        <span className="sub">ce s-a mișcat de la ultima scanare</span>
+        <span className="sub">what moved since the last scan</span>
       </div>
 
       <div className="content">
         <div className="tiles">
           <div className="tile free" onClick={() => onGoTo('free')} style={{ cursor: 'pointer' }}>
-            <div className="k">Gratis acum</div>
+            <div className="k">Free right now</div>
             <div className="v">{stats?.free ?? '—'}</div>
           </div>
           <div className="tile" onClick={() => onGoTo('under5')} style={{ cursor: 'pointer' }}>
-            <div className="k">Sub 5</div>
-            <div className="v">{stats?.under5?.toLocaleString('ro-RO') ?? '—'}</div>
+            <div className="k">Under {lowThreshold}</div>
+            <div className="v">{stats ? num(stats.under5) : '—'}</div>
           </div>
           <div className="tile" onClick={() => onGoTo('under10')} style={{ cursor: 'pointer' }}>
-            <div className="k">Sub 10</div>
-            <div className="v">{stats?.under10?.toLocaleString('ro-RO') ?? '—'}</div>
+            <div className="k">Under {highThreshold}</div>
+            <div className="v">{stats ? num(stats.under10) : '—'}</div>
           </div>
           <div className="tile">
-            <div className="k">Oferte în catalog</div>
-            <div className="v">{stats?.tracked?.toLocaleString('ro-RO') ?? '—'}</div>
+            <div className="k">Deals tracked</div>
+            <div className="v">{stats ? num(stats.tracked) : '—'}</div>
           </div>
           <div className="tile">
-            <div className="k">Alerte în 24 h</div>
+            <div className="k">Alerts in 24 h</div>
             <div className="v">{stats?.eventsToday ?? '—'}</div>
           </div>
         </div>
 
         {freeDeals.length > 0 && (
           <>
-            <div className="section-title">Gratis chiar acum — ia-le cât sunt</div>
+            <div className="section-title">Free right now — grab them while they last</div>
             <div className="deals" style={{ marginBottom: 22 }}>
               {freeDeals.map((d) => (
                 <DealRow
@@ -77,13 +81,13 @@ export default function DashboardView({
           </>
         )}
 
-        <div className="section-title">Ultimele intrări în praguri</div>
+        <div className="section-title">Latest threshold entries</div>
         {events.length === 0 ? (
           <div className="empty">
-            <h3>Încă n-am ce raporta</h3>
+            <h3>Nothing to report yet</h3>
             <p>
-              Prima scanare doar construiește referința. De la a doua încolo apar aici toate
-              jocurile care intră într-un prag.
+              The first scan only builds the baseline. From the second one on, every game that
+              drops into a threshold shows up here.
             </p>
           </div>
         ) : (
@@ -98,7 +102,7 @@ export default function DashboardView({
                   <>
                     <span className={`badge small tier-${e.tier}`}>{TIER_LABEL[e.tier]}</span>
                     <span className="event-time">{timeAgo(e.at)}</span>
-                    {e.fromPriceText && <span className="event-time">era {e.fromPriceText}</span>}
+                    {e.fromPriceText && <span className="event-time">was {e.fromPriceText}</span>}
                   </>
                 }
               />

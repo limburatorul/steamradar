@@ -4,9 +4,9 @@ export type Tier = 'free' | 'under5' | 'under10'
 export const TIERS: Tier[] = ['free', 'under5', 'under10']
 
 export const TIER_LABEL: Record<Tier, string> = {
-  free: 'Gratis',
-  under5: 'Sub 5 EUR',
-  under10: 'Sub 10 EUR'
+  free: 'Free',
+  under5: 'Under 5',
+  under10: 'Under 10'
 }
 
 /** Un joc asa cum il vede aplicatia dupa ce a citit rezultatul de la Steam. */
@@ -113,6 +113,23 @@ export interface AppConfig {
   startMinimized: boolean
   autoStart: boolean
   closeToTray: boolean
+}
+
+export interface UpdateInfo {
+  available: boolean
+  currentVersion: string
+  latestVersion?: string
+  notes?: string
+  downloadUrl?: string
+  sizeBytes?: number
+  error?: string
+}
+
+export interface UpdateProgress {
+  phase: 'downloading' | 'verifying' | 'restarting' | 'error'
+  receivedBytes?: number
+  totalBytes?: number
+  message?: string
 }
 
 export interface StatsSummary {

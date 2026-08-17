@@ -48,31 +48,31 @@ export async function refreshTray(showWindow: () => void): Promise<void> {
 
   tray.setToolTip(
     cat.updatedAt
-      ? `SteamRadar — ${free} gratis, ${under5} sub ${cfg.thresholdLow}, ${under10} sub ${cfg.thresholdHigh}`
-      : 'SteamRadar — inca nu am scanat'
+      ? `SteamRadar — ${free} free, ${under5} under ${cfg.thresholdLow}, ${under10} under ${cfg.thresholdHigh}`
+      : 'SteamRadar — no scan yet'
   )
 
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: 'Deschide SteamRadar', click: showWindow },
+      { label: 'Open SteamRadar', click: showWindow },
       { type: 'separator' },
-      { label: `${free} gratis acum`, enabled: false },
-      { label: `${under5} sub ${cfg.thresholdLow}`, enabled: false },
-      { label: `${under10} sub ${cfg.thresholdHigh}`, enabled: false },
+      { label: `${free} free right now`, enabled: false },
+      { label: `${under5} under ${cfg.thresholdLow}`, enabled: false },
+      { label: `${under10} under ${cfg.thresholdHigh}`, enabled: false },
       { type: 'separator' },
       {
-        label: isScanning() ? 'Se scaneaza...' : 'Scaneaza tot acum',
+        label: isScanning() ? 'Scanning...' : 'Scan everything now',
         enabled: !isScanning(),
         click: () => void scanFull()
       },
       {
-        label: 'Verifica doar jocurile gratis',
+        label: 'Check free games only',
         enabled: !isScanning(),
         click: () => void scanFree()
       },
       { type: 'separator' },
       {
-        label: 'Iesire',
+        label: 'Quit',
         click: () => {
           quitting = true
           app.quit()

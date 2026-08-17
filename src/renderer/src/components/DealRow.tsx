@@ -28,14 +28,14 @@ export default function DealRow({ deal, watched, onToggleWatch, aside }: Props):
         <div className="meta">
           {deal.reviewPct != null && (
             <span className={`reviews ${reviewTone(deal.reviewPct)}`}>
-              {[reviewLabel(deal.reviewSummary), `${deal.reviewPct}% din ${count(deal.reviewCount)}`]
+              {[reviewLabel(deal.reviewSummary), `${deal.reviewPct}% of ${count(deal.reviewCount)}`]
                 .filter(Boolean)
                 .join(' · ')}
             </span>
           )}
           {deal.released && <span>{deal.released}</span>}
           {deal.kind !== 'app' && (
-            <span>{deal.kind === 'dlc' ? 'DLC' : deal.kind === 'sub' ? 'pachet' : 'bundle'}</span>
+            <span>{deal.kind === 'dlc' ? 'DLC' : deal.kind === 'sub' ? 'package' : 'bundle'}</span>
           )}
           {endsIn(deal.discountEndsAt) && <span>{endsIn(deal.discountEndsAt)}</span>}
           {aside}
@@ -49,11 +49,11 @@ export default function DealRow({ deal, watched, onToggleWatch, aside }: Props):
         <div className="price">
           {deal.priceOriginalText && !free && <div className="old">{deal.priceOriginalText}</div>}
           {free && deal.priceOriginalText && <div className="old">{deal.priceOriginalText}</div>}
-          <div className={`now${free ? ' free' : ''}`}>{free ? 'GRATIS' : deal.priceText}</div>
+          <div className={`now${free ? ' free' : ''}`}>{free ? 'FREE' : deal.priceText}</div>
         </div>
         <button
           className={`star${watched ? ' on' : ''}`}
-          title={watched ? 'Nu mai urmări' : 'Urmărește'}
+          title={watched ? 'Stop watching' : 'Watch this game'}
           onClick={() => onToggleWatch(deal)}
         >
           {watched ? '★' : '☆'}
