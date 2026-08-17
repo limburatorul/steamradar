@@ -1,6 +1,6 @@
 {
   "name": "steamradar",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Vaneaza reduceri pe Steam si alerteaza cand jocurile devin gratis, sub 5 EUR sau sub 10 EUR",
   "main": "out/main/index.js",
   "author": "tucu",

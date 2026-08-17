@@ -21,6 +21,7 @@ interface Props {
   hint: string
   watched: Set<string>
   onToggleWatch: (deal: Deal) => void
+  onOpen: (deal: Deal) => void
   /** Se schimba dupa fiecare scanare, ca lista sa se reincarce singura. */
   refreshKey: number
 }
@@ -31,6 +32,7 @@ export default function DealsView({
   hint,
   watched,
   onToggleWatch,
+  onOpen,
   refreshKey
 }: Props): React.JSX.Element {
   const [items, setItems] = useState<Deal[]>([])
@@ -131,6 +133,7 @@ export default function DealsView({
                 deal={d}
                 watched={watched.has(d.key)}
                 onToggleWatch={onToggleWatch}
+                onOpen={onOpen}
               />
             ))}
           </div>

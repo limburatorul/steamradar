@@ -10,26 +10,36 @@ Interfața e în engleză; comentariile din cod și notele astea rămân în rom
 
 ## Cum ia datele
 
-Steam nu are un API oficial de reduceri, dar căutarea din magazin răspunde în JSON
-dacă i-o ceri: `store.steampowered.com/search/results/?json=1`. Fără cheie, fără
-anti-bot. Un câmp `total_count` și un câmp `results_html` cu rândurile randate, din
-care se citesc appid, preț final în cenți, procent de reducere, scor recenzii și
-dată de lansare.
+Steam nu are un API oficial de reduceri. Aplicația folosește două surse, fiecare
+pentru ce știe să facă, ambele fără cheie și fără anti-bot:
 
-Trei lucruri verificate pe viu, nu presupuse:
+1. **`IStoreQueryService/Query`** — interogarea pe care o folosește magazinul nou.
+   Răspunde anonim, dă **500 de itemi pe cerere** și aduce direct preț în cenți,
+   procent, scor recenzii, dată de lansare și data la care expiră reducerea. Toate
+   jocurile la reducere (~5900 fără DLC) încap în **12 cereri, ~30 de secunde**.
+2. **`search/results` cu `maxprice=free&specials=1`** — o singură cerere care
+   întoarce exact jocurile puse la -100%. Rulează mult mai des decât măturarea
+   completă, fiindcă acolo se pierde cel mai mult dacă afli târziu.
 
-- **`sort_by=Discount_DESC` e acceptat, dar ignorat.** Magazinul nu mai are sortare
-  după reducere; cererea întoarce rezultate amestecate (-70%, -85%, -25%). De aceea
-  topul reducerilor se calculează local, nu se cere de la Steam.
-- **`sort_by=Price_ASC` e reală și stabilă peste pagini.** Tot ce e sub un prag e
-  un prefix continuu al listei, deci pragurile ies dintr-o singură parcurgere.
-- **`maxprice=free&specials=1` întoarce exact jocurile devenite gratis.** O singură
-  cerere, deci alerta cea mai importantă poate rula la câteva minute, în timp ce
-  scanarea completă (~105 cereri, câte 100 de oferte pe pagină) merge o dată pe oră.
+Patru lucruri măsurate pe viu, nu presupuse:
+
+- **Fără `sort` explicit, interogarea nouă nu e repetabilă.** Două cereri identice
+  n-au niciun element comun, iar paginarea pierdea **1112 jocuri din 5858**.
+  `sort: 1` (alfabetic) aduce exact câte declară `total_matching_records`.
+- **Endpointul vechi limitează la ~20 de cereri**, cu completare de ~0,4/s (token
+  bucket), apoi răspunde 429 și își revine în 15–30 de secunde. Măsurat: la 350 ms
+  cade după 30 de cereri, la 1000 ms după 52. Ambele surse trec prin același
+  mecanism de reîncercare.
+- **`sort_by=Discount_DESC` e acceptat, dar ignorat** — magazinul nu mai are
+  sortare după reducere; întoarce -70%, -85%, -25% amestecat. Topul reducerilor se
+  calculează local.
+- **`min_discount_percent: 100` nu filtrează jocurile gratis**, ci întoarce tot
+  magazinul (240.000 de rezultate). De aceea pragul „gratis" a rămas pe căutarea
+  veche, care îl face exact.
 
 Interogarea se face mereu cu `l=english`, ca tiparul recenziilor să fie același
 indiferent de țară; prețul vine tot în moneda locală, fiindcă de monedă răspunde
-`cc`, nu limba. Etichetele se traduc la afișare.
+`cc`, nu limba.
 
 ## Alertele
 
@@ -45,6 +55,32 @@ devenite gratis primesc notificare proprie în ambele moduri.
 
 Lista de urmărire e singurul loc care alertează și la scăderi care nu ating niciun
 prag: pui steaua pe un joc de 40 și afli când ajunge la 24. Opțional cu preț țintă.
+
+## Istoricul de preț
+
+Fiecare joc care ajunge într-un prag — sau pe care îl urmărești — capătă un
+grafic al evoluției prețului, în fereastra care se deschide la clic pe nume.
+Graficul e în **trepte**, fiindcă un preț chiar așa se mișcă: stă, apoi sare.
+O linie oblică între două puncte ar desena prețuri care n-au existat.
+
+Ce nu se ține: istoricul tuturor celor ~5900 de oferte. Ar însemna sute de mii
+de puncte pe zi pentru jocuri la care nu se uită nimeni. Un joc intrat o dată
+rămâne urmărit, ca să se vadă ciclul întreg — reducere, revenire la prețul de
+listă, reducere mai bună — și primește un punct doar când prețul chiar se
+schimbă.
+
+## Tema
+
+Portată din Game Browser, cu aceeași rețetă: paleta, cele trei stiluri de
+sticlă și granulația. Blur-ul e o **scală**, nu o înlocuire, iar ce separă de
+fapt acrylic-ul de un blur mai gros e saltul de saturație plus granulația — fără
+zgomot arată doar ca un blur mai mare. Verificat prin control, nu setând
+atributul de mână: glass `blur(16px) saturate(1.2)` fără granulație, acrylic
+`blur(33.6px) saturate(2) brightness(1.05)` cu, frosted
+`blur(48px) saturate(1.1) brightness(1.16)` cu.
+
+Fundalul rotativ e construit din capsulele celor mai bine cotate oferte. Nu e
+decorativ: fără el, sticla n-are ce estompa și toate trei stilurile arată la fel.
 
 ## Numele din notificări
 
@@ -71,8 +107,10 @@ Două capcane deja plătite în Game Browser, nu le redescoperi:
 și maturarea șterge **orice** exe cu versiune mai mică din același folder,
 inclusiv build-uri de test ținute intenționat acolo.
 
-Ca să funcționeze, are nevoie de un repo GitHub `limburatorul/steamradar` cu un
-release care poartă `SteamRadar-<versiune>-portabil.exe`.
+Sursa versiunilor e https://github.com/limburatorul/steamradar — fiecare release
+poartă `SteamRadar-<versiune>-portabil.exe`. Pe lângă verificarea de la pornire,
+reverifică din 45 în 45 de minute (configurabil), fiindcă aplicația stă zile
+întregi în tray.
 
 ## Rulare
 
@@ -95,7 +133,8 @@ Alte comenzi:
 În varianta portabilă, în `SteamRadar-Date/` lângă executabil, ca aplicația să
 poată fi mutată pe stick cu tot cu istoric. Altfel în `%APPDATA%/steamradar`.
 
-- `config.json` — praguri, intervale, notificări
+- `config.json` — praguri, intervale, notificări, aspect
+- `history.json` — evoluția prețului pentru jocurile ajunse în praguri
 - `catalog.json` — ofertele de acum; e și fotografia față de care se compară
 - `events.json` — istoricul intrărilor în praguri (ultimele 3000)
 - `watchlist.json` — jocurile urmărite

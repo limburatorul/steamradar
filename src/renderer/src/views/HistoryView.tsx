@@ -7,6 +7,7 @@ import { eventToDeal, num, timeAgo } from '../format'
 interface Props {
   watched: Set<string>
   onToggleWatch: (deal: Deal) => void
+  onOpen: (deal: Deal) => void
   refreshKey: number
   onSeen: () => void
 }
@@ -14,6 +15,7 @@ interface Props {
 export default function HistoryView({
   watched,
   onToggleWatch,
+  onOpen,
   refreshKey,
   onSeen
 }: Props): React.JSX.Element {
@@ -80,6 +82,7 @@ export default function HistoryView({
                 deal={eventToDeal(e)}
                 watched={watched.has(e.key)}
                 onToggleWatch={onToggleWatch}
+                onOpen={onOpen}
                 aside={
                   <>
                     <span className={`badge small tier-${e.tier}`}>{TIER_LABEL[e.tier]}</span>

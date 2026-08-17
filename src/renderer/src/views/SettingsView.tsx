@@ -234,6 +234,49 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
           </div>
 
           <div className="card">
+            <h2>Appearance</h2>
+            <p className="hint">
+              Same recipe as Game Browser: the style only swaps the blur scale, the saturation lift
+              and the grain — every surface keeps its own tint and alpha. What separates acrylic
+              from plain blur is the saturation and the grain, not more blur. Without the rotating
+              backdrop there is nothing behind the glass, so all three look the same.
+            </p>
+            <div className="row">
+              <label className="k">Glass style</label>
+              <div className="pill-row">
+                {(['glass', 'acrylic', 'frosted'] as const).map((g) => (
+                  <button
+                    key={g}
+                    className={`pill${config.glassStyle === g ? ' on' : ''}`}
+                    onClick={() => onChange({ glassStyle: g })}
+                  >
+                    {g[0].toUpperCase() + g.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="row">
+              <label className="k">Rotating backdrop</label>
+              <input
+                type="checkbox"
+                checked={config.backdrop}
+                onChange={(e) => onChange({ backdrop: e.target.checked })}
+              />
+              <span className="note">built from the capsule art of the best-reviewed deals</span>
+            </div>
+            <div className="row">
+              <label className="k">Steam button opens</label>
+              <select
+                value={config.openInSteamClient ? 'client' : 'browser'}
+                onChange={(e) => onChange({ openInSteamClient: e.target.value === 'client' })}
+              >
+                <option value="client">The Steam client</option>
+                <option value="browser">The store page in a browser</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="card">
             <h2>Startup</h2>
             <div className="row">
               <label className="k">Start with Windows</label>
@@ -269,6 +312,18 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
               starts it and deletes the old file on the next launch.
             </p>
             <div className="row">
+              <label className="k">Check every</label>
+              <input
+                type="number"
+                min={0}
+                max={1440}
+                step={15}
+                value={config.updateCheckMin}
+                onChange={(e) => onChange({ updateCheckMin: Number(e.target.value) })}
+              />
+              <span className="note">minutes — 0 turns the periodic check off</span>
+            </div>
+            <div className="row">
               <button onClick={checkUpdate} disabled={checking}>
                 {checking ? 'Checking…' : 'Check for updates'}
               </button>
@@ -287,9 +342,26 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
           <div className="card">
             <h2>Data</h2>
             <p className="hint">
-              The catalog, the history and the watchlist live in <code>{folder}</code>.
+              The catalog, the alert history, the price history and the watchlist live in{' '}
+              <code>{folder}</code>. Price history is kept only for games that reached a threshold
+              at least once or that you watch — keeping it for all ~5900 deals would be hundreds of
+              thousands of points a day for games nobody looks at.
             </p>
-            <button onClick={() => void window.api.config.openDataFolder()}>Open the folder</button>
+            <div className="row" style={{ padding: 0 }}>
+              <button onClick={() => void window.api.config.openDataFolder()}>
+                Open the folder
+              </button>
+              <button
+                className="danger"
+                onClick={() => {
+                  if (confirm('Delete every recorded price history? This cannot be undone.')) {
+                    void window.api.history.clear()
+                  }
+                }}
+              >
+                Clear price history
+              </button>
+            </div>
           </div>
         </div>
       </div>

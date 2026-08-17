@@ -3,6 +3,37 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.3.0] — 2026-08-17
+
+### Adăugat
+
+- **Istoric de preț per joc, salvat local**, cu grafic în fereastra jocului
+  (clic pe nume, pe capsulă sau pe butonul ▤). Graficul e desenat în **trepte**,
+  nu cu linii oblice: un preț nu urcă lin de la 20 la 40 într-o săptămână, stă la
+  20 până în clipa în care sare. Arată prețul de listă cu linie întreruptă,
+  minimul văzut vreodată și fiecare schimbare.
+  - Se ține doar pentru jocurile care au ajuns măcar o dată într-un prag sau
+    sunt urmărite. Pentru toate cele ~5900 de oferte ar însemna sute de mii de
+    puncte pe zi la jocuri la care nu se uită nimeni.
+  - Punctele se scriu doar când prețul chiar se schimbă. Un joc care iese din
+    reducere primește un punct la prețul de listă, altfel graficul ar arăta
+    reducerea ca și cum ar ține la nesfârșit.
+- **Tema vizuală din Game Browser**, portată întreagă: paleta, cele trei stiluri
+  de sticlă (glass / acrylic / frosted) cu aceeași rețetă de patru variabile,
+  granulația fină pe suprafețele mari, barele de derulare și fundalul rotativ —
+  construit aici din capsulele celor mai bine cotate oferte, ca sticla să aibă ce
+  estompa.
+- **Verificare periodică de versiune**, la 45 de minute implicit, configurabilă.
+  Aplicația stă zile în tray, deci o verificare doar la pornire ar însemna să
+  afli de o versiune nouă abia la următoarea repornire a calculatorului.
+
+### Schimbat
+
+- Butonul **Steam** din listă deschide jocul în **clientul Steam**
+  (`steam://store/<appid>`), nu pagina din browser. Pentru pachete și bundle-uri,
+  care n-au appid, cade pe pagina web. Comportamentul se poate inversa din
+  Settings, iar fereastra jocului are oricum ambele butoane.
+
 ## [0.2.0] — 2026-08-17
 
 ### Adăugat

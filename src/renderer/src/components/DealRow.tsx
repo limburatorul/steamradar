@@ -5,24 +5,34 @@ interface Props {
   deal: Deal
   watched: boolean
   onToggleWatch: (deal: Deal) => void
+  /** Deschide fereastra jocului cu graficul de pret. */
+  onOpen: (deal: Deal) => void
   /** Text suplimentar la stanga pretului: momentul alertei, pragul de dinainte. */
   aside?: React.ReactNode
 }
 
-export default function DealRow({ deal, watched, onToggleWatch, aside }: Props): React.JSX.Element {
+export default function DealRow({
+  deal,
+  watched,
+  onToggleWatch,
+  onOpen,
+  aside
+}: Props): React.JSX.Element {
   const free = deal.priceFinal <= 0
-  const open = (): void => void window.api.openExternal(deal.url)
+  // butonul principal duce in clientul Steam, nu in browser; daca jocul n-are
+  // appid (pachete, bundle-uri), procesul principal cade pe pagina din browser
+  const openSteam = (): void => void window.api.openInSteam(deal.appid, deal.url)
 
   return (
     <div className={`deal${free ? ' is-free' : ''}`}>
       {deal.image ? (
-        <img className="capsule" src={deal.image} alt="" onClick={open} style={{ cursor: 'pointer' }} />
+        <img className="capsule" src={deal.image} alt="" onClick={() => onOpen(deal)} />
       ) : (
         <div className="capsule" />
       )}
 
       <div className="body">
-        <div className="name" title={deal.name} onClick={open} style={{ cursor: 'pointer' }}>
+        <div className="name" title={deal.name} onClick={() => onOpen(deal)}>
           {deal.name}
         </div>
         <div className="meta">
@@ -47,8 +57,7 @@ export default function DealRow({ deal, watched, onToggleWatch, aside }: Props):
           <span className={`badge${free ? '' : ' tier-under5'}`}>-{deal.discountPct}%</span>
         )}
         <div className="price">
-          {deal.priceOriginalText && !free && <div className="old">{deal.priceOriginalText}</div>}
-          {free && deal.priceOriginalText && <div className="old">{deal.priceOriginalText}</div>}
+          {deal.priceOriginalText && <div className="old">{deal.priceOriginalText}</div>}
           <div className={`now${free ? ' free' : ''}`}>{free ? 'FREE' : deal.priceText}</div>
         </div>
         <button
@@ -58,7 +67,12 @@ export default function DealRow({ deal, watched, onToggleWatch, aside }: Props):
         >
           {watched ? '★' : '☆'}
         </button>
-        <button onClick={open}>Steam</button>
+        <button className="ghost" title="Price history" onClick={() => onOpen(deal)}>
+          ▤
+        </button>
+        <button onClick={openSteam} title="Open in the Steam client">
+          Steam
+        </button>
       </div>
     </div>
   )

@@ -212,4 +212,36 @@ export function cleanupOldExecutables(): void {
   void delay(20_000).then(sweep)
 }
 
+/* ------------------------------------------------------ verificare periodica */
+
+let updateTimer: NodeJS.Timeout | null = null
+let notifier: ((info: UpdateInfo) => void) | null = null
+
+export function onUpdateAvailable(cb: (info: UpdateInfo) => void): void {
+  notifier = cb
+}
+
+/** Verifica si anunta doar cand chiar exista o versiune mai noua. */
+export async function announceUpdate(): Promise<void> {
+  const info = await checkForUpdate()
+  if (info.available) notifier?.(info)
+}
+
+/**
+ * Reverificare periodica, nu doar la pornire: aplicatia sta zile intregi in
+ * tray, deci o verificare facuta doar la boot ar insemna sa afli de o versiune
+ * noua abia la urmatoarea repornire a calculatorului.
+ */
+export function scheduleUpdateChecks(minutes: number): void {
+  if (updateTimer) clearInterval(updateTimer)
+  updateTimer = null
+  if (!minutes || minutes <= 0 || !portableDir()) return
+  updateTimer = setInterval(() => void announceUpdate(), Math.max(15, minutes) * 60_000)
+}
+
+export function stopUpdateChecks(): void {
+  if (updateTimer) clearInterval(updateTimer)
+  updateTimer = null
+}
+
 export { UPDATE_REPO }

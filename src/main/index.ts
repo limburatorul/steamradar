@@ -8,7 +8,14 @@ import { cancelScan, onStatus, scanFull, schedule, stopSchedule } from './scanne
 import { getCatalog } from './store'
 import { ensureNotificationIdentity } from './shortcut'
 import { beginQuit, createTray, destroyTray, isQuitting, refreshTray } from './tray'
-import { checkForUpdate, cleanupOldExecutables, portableDir } from './updater'
+import {
+  announceUpdate,
+  cleanupOldExecutables,
+  onUpdateAvailable,
+  portableDir,
+  scheduleUpdateChecks,
+  stopUpdateChecks
+} from './updater'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -89,6 +96,9 @@ app.whenReady().then(async () => {
   })
 
   setWindowOpener(showWindow)
+  onUpdateAvailable((info) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update:available', info)
+  })
   registerIpc(() => mainWindow)
   createTray(showWindow)
   onStatus(() => void refreshTray(showWindow))
@@ -113,12 +123,8 @@ app.whenReady().then(async () => {
   // varianta portabila: altfel ar aparea un banner care ofera o actualizare ce
   // n-are cum sa se instaleze, fiindca nu exista un exe langa care sa punem altul
   if (portableDir()) {
-    setTimeout(async () => {
-      const info = await checkForUpdate()
-      if (info.available && mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('update:available', info)
-      }
-    }, 8000)
+    setTimeout(() => void announceUpdate(), 8000)
+    scheduleUpdateChecks(cfg.updateCheckMin)
   }
 
   app.on('activate', () => {
@@ -133,6 +139,7 @@ app.on('before-quit', () => {
   beginQuit()
   // timerele sunt cele care ar tine procesul viu dupa ce fereastra a disparut
   stopSchedule()
+  stopUpdateChecks()
   cancelScan()
   destroyTray()
 })

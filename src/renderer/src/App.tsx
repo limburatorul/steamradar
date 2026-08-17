@@ -6,6 +6,8 @@ import HistoryView from './views/HistoryView'
 import SettingsView from './views/SettingsView'
 import WatchlistView from './views/WatchlistView'
 import UpdateBanner from './components/UpdateBanner'
+import GameDialog from './components/GameDialog'
+import Backdrop from './components/Backdrop'
 import { clock, num } from './format'
 
 type Page = 'radar' | 'free' | 'under5' | 'under10' | 'top' | 'watch' | 'history' | 'settings'
@@ -17,6 +19,8 @@ export default function App(): React.JSX.Element {
   const [stats, setStats] = useState<StatsSummary | null>(null)
   const [watchlist, setWatchlist] = useState<WatchItem[]>([])
   const [version, setVersion] = useState('')
+  const [selected, setSelected] = useState<Deal | null>(null)
+  const [currency, setCurrency] = useState('€')
   // creste dupa fiecare scanare terminata si obliga ecranele sa reciteasca datele
   const [refreshKey, setRefreshKey] = useState(0)
 
@@ -27,6 +31,7 @@ export default function App(): React.JSX.Element {
     void window.api.scan.status().then(setStatus)
     void window.api.watch.list().then(setWatchlist)
     void window.api.version().then(setVersion)
+    void window.api.deals.query({ limit: 1 }).then((r) => setCurrency(r.currency))
     reloadStats()
 
     return window.api.scan.onStatus((s) => {
@@ -75,7 +80,9 @@ export default function App(): React.JSX.Element {
   const high = config?.thresholdHigh ?? 10
 
   return (
-    <div className="app">
+    <>
+      {config?.backdrop && <Backdrop refreshKey={refreshKey} />}
+      <div className="app" data-glass={config?.glassStyle ?? 'glass'}>
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark">◎</div>
@@ -181,6 +188,7 @@ export default function App(): React.JSX.Element {
           <DashboardView
             watched={watched}
             onToggleWatch={toggleWatch}
+            onOpen={setSelected}
             onGoTo={(t: Tier) => setPage(t)}
             lowThreshold={low}
             highThreshold={high}
@@ -194,6 +202,7 @@ export default function App(): React.JSX.Element {
             hint="No game is at -100% at the moment. I check every few minutes."
             watched={watched}
             onToggleWatch={toggleWatch}
+            onOpen={setSelected}
             refreshKey={refreshKey}
           />
         )}
@@ -204,6 +213,7 @@ export default function App(): React.JSX.Element {
             hint="No deal under the threshold. Scan, or lower the discount filter."
             watched={watched}
             onToggleWatch={toggleWatch}
+            onOpen={setSelected}
             refreshKey={refreshKey}
           />
         )}
@@ -214,6 +224,7 @@ export default function App(): React.JSX.Element {
             hint="Nothing in the band between the two thresholds."
             watched={watched}
             onToggleWatch={toggleWatch}
+            onOpen={setSelected}
             refreshKey={refreshKey}
           />
         )}
@@ -224,6 +235,7 @@ export default function App(): React.JSX.Element {
             hint="The catalog is empty — start a scan."
             watched={watched}
             onToggleWatch={toggleWatch}
+            onOpen={setSelected}
             refreshKey={refreshKey}
           />
         )}
@@ -231,6 +243,7 @@ export default function App(): React.JSX.Element {
           <WatchlistView
             watchlist={watchlist}
             onToggleWatch={toggleWatch}
+            onOpen={setSelected}
             onUpdate={updateWatch}
             refreshKey={refreshKey}
           />
@@ -239,12 +252,24 @@ export default function App(): React.JSX.Element {
           <HistoryView
             watched={watched}
             onToggleWatch={toggleWatch}
+            onOpen={setSelected}
             refreshKey={refreshKey}
             onSeen={reloadStats}
           />
         )}
         {page === 'settings' && config && <SettingsView config={config} onChange={patchConfig} />}
       </main>
-    </div>
+
+      {selected && (
+        <GameDialog
+          deal={selected}
+          currency={currency}
+          watched={watched.has(selected.key)}
+          onToggleWatch={toggleWatch}
+          onClose={() => setSelected(null)}
+        />
+      )}
+      </div>
+    </>
   )
 }

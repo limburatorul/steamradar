@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { AppConfig, Deal, DealEvent, ScanStatus, Tier } from '../shared/types'
 import { loadConfig } from './config'
+import { recordScan, startTracking } from './history'
 import { notifyEvents, notifyWatch } from './notify'
 import {
   addEvents,
@@ -129,7 +130,7 @@ export async function scanFree(): Promise<DealEvent[]> {
 
     const events = seeded ? diff(fresh, previous, cfg) : []
     await saveCatalog(sortDeals(merged), cat.currency)
-    await commit(events, fresh, cfg)
+    await commit(events, fresh, cfg, false)
 
     setStatus({
       phase: 'idle',
@@ -245,7 +246,7 @@ export async function scanFull(): Promise<DealEvent[]> {
     const events = seeded ? diff(deals, previous, cfg) : []
 
     await saveCatalog(sortDeals(deals), currencyOf(deals))
-    await commit(events, deals, cfg)
+    await commit(events, deals, cfg, true)
 
     setStatus({
       phase: 'idle',
@@ -320,13 +321,34 @@ function diff(deals: Deal[], previous: Map<string, Deal>, cfg: AppConfig): DealE
   return out.sort((a, b) => RANK[a.tier] - RANK[b.tier] || b.discountPct - a.discountPct)
 }
 
-/** Salveaza evenimentele, marcheaza cele urmarite si trimite notificarile. */
-async function commit(events: DealEvent[], deals: Deal[], cfg: AppConfig): Promise<void> {
+/**
+ * Salveaza evenimentele, marcheaza cele urmarite si trimite notificarile.
+ *
+ * `full` spune daca `deals` e catalogul intreg sau doar felia de jocuri gratis.
+ * Conteaza pentru istoricul de pret: acolo, un joc absent din lista inseamna
+ * "a iesit din reducere", iar verificarea rapida ar declara asa toate jocurile
+ * urmarite, la fiecare zece minute.
+ */
+async function commit(
+  events: DealEvent[],
+  deals: Deal[],
+  cfg: AppConfig,
+  full: boolean
+): Promise<void> {
   const watchlist = await getWatchlist()
   const watched = new Set(watchlist.map((w) => w.key))
   for (const e of events) e.watched = watched.has(e.key)
 
   await addEvents(events)
+
+  // un joc care a intrat o data intr-un prag ramane in istoricul de pret, ca sa
+  // se vada ciclul intreg, nu doar reducerea care l-a adus in lista
+  const byKey = new Map(deals.map((d) => [d.key, d]))
+  for (const e of events) {
+    const deal = byKey.get(e.key)
+    if (deal) await startTracking(deal)
+  }
+  if (full) await recordScan(deals, [...watched])
 
   const wanted = events.filter((e) => cfg.notify[e.tier])
   if (wanted.length) notifyEvents(wanted, cfg)

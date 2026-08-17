@@ -113,6 +113,29 @@ export interface AppConfig {
   startMinimized: boolean
   autoStart: boolean
   closeToTray: boolean
+  /** Cat de des verific daca a aparut o versiune noua (minute). 0 = niciodata. */
+  updateCheckMin: number
+  /** Butonul Steam deschide clientul, nu pagina din browser. */
+  openInSteamClient: boolean
+  glassStyle: GlassStyle
+  /** Fundalul rotativ construit din capsulele ofertelor. */
+  backdrop: boolean
+}
+
+export type GlassStyle = 'glass' | 'acrylic' | 'frosted'
+
+/** Un punct din graficul de pret: [secunde unix, pret in centi, reducere %]. */
+export type PricePoint = [number, number, number]
+
+export interface PriceSeries {
+  key: string
+  name: string
+  image: string | null
+  url: string
+  appid: number | null
+  /** Pretul de lista, ca sa stiu unde sa duc linia cand oferta se termina. */
+  listPrice?: number
+  points: PricePoint[]
 }
 
 export interface UpdateInfo {

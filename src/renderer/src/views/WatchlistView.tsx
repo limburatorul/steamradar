@@ -6,6 +6,7 @@ import { timeAgo } from '../format'
 interface Props {
   watchlist: WatchItem[]
   onToggleWatch: (deal: Deal) => void
+  onOpen: (deal: Deal) => void
   onUpdate: (key: string, patch: Partial<WatchItem>) => void
   refreshKey: number
 }
@@ -18,6 +19,7 @@ interface Props {
 export default function WatchlistView({
   watchlist,
   onToggleWatch,
+  onOpen,
   onUpdate,
   refreshKey
 }: Props): React.JSX.Element {
@@ -81,6 +83,7 @@ export default function WatchlistView({
                   deal={deal}
                   watched
                   onToggleWatch={onToggleWatch}
+                  onOpen={onOpen}
                   aside={
                     <>
                       <span className="event-time">added {timeAgo(w.addedAt)}</span>

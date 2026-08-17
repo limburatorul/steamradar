@@ -27,7 +27,11 @@ const DEFAULTS: AppConfig = {
   minDiscountPct: 0,
   startMinimized: false,
   autoStart: false,
-  closeToTray: true
+  closeToTray: true,
+  updateCheckMin: 45,
+  openInSteamClient: true,
+  glassStyle: 'glass',
+  backdrop: true
 }
 
 let cached: AppConfig | null = null

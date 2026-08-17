@@ -7,6 +7,7 @@ import { eventToDeal, num, timeAgo } from '../format'
 interface Props {
   watched: Set<string>
   onToggleWatch: (deal: Deal) => void
+  onOpen: (deal: Deal) => void
   onGoTo: (tier: Tier) => void
   lowThreshold: number
   highThreshold: number
@@ -17,6 +18,7 @@ interface Props {
 export default function DashboardView({
   watched,
   onToggleWatch,
+  onOpen,
   onGoTo,
   lowThreshold,
   highThreshold,
@@ -75,6 +77,7 @@ export default function DashboardView({
                   deal={d}
                   watched={watched.has(d.key)}
                   onToggleWatch={onToggleWatch}
+                  onOpen={onOpen}
                 />
               ))}
             </div>
@@ -98,6 +101,7 @@ export default function DashboardView({
                 deal={eventToDeal(e)}
                 watched={watched.has(e.key)}
                 onToggleWatch={onToggleWatch}
+                onOpen={onOpen}
                 aside={
                   <>
                     <span className={`badge small tier-${e.tier}`}>{TIER_LABEL[e.tier]}</span>

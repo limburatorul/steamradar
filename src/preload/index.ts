@@ -4,6 +4,7 @@ import type {
   AppConfig,
   Deal,
   DealEvent,
+  PriceSeries,
   ScanStatus,
   StatsSummary,
   Tier,
@@ -77,8 +78,19 @@ const api = {
     }
   },
 
+  history: {
+    get: (key: string): Promise<PriceSeries | null> => ipcRenderer.invoke('history:get', key),
+    many: (keys: string[]): Promise<Record<string, PriceSeries>> =>
+      ipcRenderer.invoke('history:many', keys),
+    tracked: (): Promise<string[]> => ipcRenderer.invoke('history:tracked'),
+    clear: (): Promise<void> => ipcRenderer.invoke('history:clear')
+  },
+
   version: (): Promise<string> => ipcRenderer.invoke('app:version'),
-  openExternal: (url: string): Promise<boolean> => ipcRenderer.invoke('shell:open-external', url)
+  openExternal: (url: string): Promise<boolean> => ipcRenderer.invoke('shell:open-external', url),
+  /** Pagina jocului in clientul Steam, cu pagina web ca rezerva. */
+  openInSteam: (appid: number | null, fallbackUrl: string): Promise<boolean> =>
+    ipcRenderer.invoke('shell:open-steam', appid, fallbackUrl)
 }
 
 contextBridge.exposeInMainWorld('api', api)

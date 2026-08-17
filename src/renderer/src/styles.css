@@ -1,18 +1,65 @@
+/* Tema e cea din Game Browser, portata: aceeasi paleta si aceeasi reteta de
+   sticla, ca cele doua aplicatii sa arate ca facute de aceeasi mana. */
+
 :root {
-  --bg: #0f1115;
-  --bg-raised: #161a21;
-  --bg-hover: #1d222b;
-  --border: #262c37;
-  --text: #e6e9ef;
-  --text-dim: #98a1b3;
-  --text-faint: #6b7484;
-  --accent: #66c0f4;
-  --accent-dim: #1f4a68;
-  --good: #3fb950;
+  --bg-0: #101012;
+  --bg-1: #17181b;
+  --bg-2: #1e2024;
+  --bg-3: #26282d;
+  --border: #303338;
+  --text-0: #ececee;
+  --text-1: #a5a8ae;
+  --text-2: #6f7278;
+  --accent: #4c8bf5;
+  --accent-dim: #2f4f8f;
+  --accent-light: #7aabf8;
+  --accent-lighter: #a3c5fa;
+  --accent-rgb: 76, 139, 245;
+  --danger: #e5484d;
+  --success: #3ddc84;
   --warn: #d29922;
-  --bad: #f85149;
   --free: #a4d007;
-  --radius: 8px;
+  --radius: 6px;
+
+  /* Cat de tare se vede fundalul prin suprafete. Fiecare suprafata isi pastreaza
+     propria alfa; stilul de sticla schimba doar cele patru valori de mai jos. */
+  --sidebar-alpha: 0.82;
+  --bar-alpha: 0.72;
+  --panel-alpha: 0.66;
+  --surface-blur: 16px;
+
+  /* Reteta de sticla, comuna tuturor suprafetelor translucide. Blur-ul e o
+     *scala*, nu o inlocuire: fiecare suprafata isi pastreaza propriul blur, iar
+     stilul decide cat de departe il impinge. 16px se citeste ca 16 / 34 / 48.
+
+     Ce separa de fapt acrylic-ul de un blur mai mare nu e blur-ul, ci saltul de
+     saturatie plus stratul de granulatie. Fara zgomot, totul arata doar ca un
+     blur mai gros. */
+  --glass-blur-scale: 1;
+  --glass-saturate: 1.2;
+  --glass-brightness: 1;
+  --glass-noise: none;
+}
+
+/* Acrylic ca la Windows: culoarea trasa prin de dedesubt, plus granulatie fina.
+   Alfa granulatiei e 0.07, nu 0.5 - granulatia reala de acrylic sta pe la 2-4%,
+   iar la jumatate de opacitate se citeste ca murdarie pe ecran. baseFrequency
+   mare da granulatie fina; frecventele mici dau pete, nu granulatie. */
+[data-glass='acrylic'] {
+  --glass-blur-scale: 2.1;
+  --glass-saturate: 2;
+  --glass-brightness: 1.05;
+  --glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+}
+
+/* Sticla mata: mai laptoasa si mai neutra - blur mai gros, aproape fara tragere
+   de culoare, un salt de luminozitate si granulatie mai groasa. Mai blanda cu
+   textul decat acrylic-ul, care trage capsulele colorate in sus prin panou. */
+[data-glass='frosted'] {
+  --glass-blur-scale: 3;
+  --glass-saturate: 1.1;
+  --glass-brightness: 1.16;
+  --glass-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
 }
 
 * {
@@ -27,26 +74,69 @@ body,
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font: 14px/1.5 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg-0);
+  color: var(--text-0);
+  font: 13px/1.5 'Segoe UI', system-ui, -apple-system, sans-serif;
   overflow: hidden;
+  user-select: none;
 }
+
+/* --------------------------------------------------------------- fundalul */
+
+/* Fundal rotativ construit din capsulele ofertelor, ca sticla sa aiba ce sa
+   estompeze. Saturatia e trasa mult in jos: la putere maxima, o singura capsula
+   puternic colorata spala toata fereastra in nuanta ei. */
+.backdrop-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--bg-0);
+}
+
+.backdrop-image {
+  position: absolute;
+  inset: -40px;
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.34) blur(26px) saturate(0.45);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.backdrop-image.is-active {
+  opacity: 1;
+}
+
+/* Vinieta peste tot fundalul: intuneca marginile, ca bara laterala si cea de
+   sus sa aiba o fasie constant inchisa in spatele sticlei, nu orice capsula
+   se nimereste. */
+.backdrop-layer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 45%, transparent 0%, rgba(0, 0, 0, 0.5) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, transparent 22%, transparent 74%, rgba(0, 0, 0, 0.5) 100%);
+}
+
+/* ------------------------------------------------------------- controale */
 
 button {
   font: inherit;
   cursor: pointer;
   border: 1px solid var(--border);
-  background: var(--bg-raised);
-  color: var(--text);
-  padding: 7px 14px;
+  background: var(--bg-2);
+  color: var(--text-0);
+  padding: 6px 13px;
   border-radius: var(--radius);
   transition: background 0.12s, border-color 0.12s;
 }
 
 button:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: #38414f;
+  background: var(--bg-3);
+  border-color: #3d4147;
 }
 
 button:disabled {
@@ -57,30 +147,30 @@ button:disabled {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #0a1119;
+  color: #fff;
   font-weight: 600;
 }
 
 button.primary:hover:not(:disabled) {
-  background: #8ad2f8;
-  border-color: #8ad2f8;
+  background: var(--accent-light);
+  border-color: var(--accent-light);
 }
 
 button.ghost {
   background: transparent;
   border-color: transparent;
-  color: var(--text-dim);
+  color: var(--text-1);
   padding: 5px 9px;
 }
 
 button.ghost:hover:not(:disabled) {
-  background: var(--bg-hover);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-0);
 }
 
 button.danger:hover:not(:disabled) {
-  border-color: var(--bad);
-  color: var(--bad);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 input[type='text'],
@@ -88,10 +178,10 @@ input[type='number'],
 input[type='search'],
 select {
   font: inherit;
-  background: var(--bg);
+  background: rgba(0, 0, 0, 0.28);
   border: 1px solid var(--border);
-  color: var(--text);
-  padding: 7px 10px;
+  color: var(--text-0);
+  padding: 6px 10px;
   border-radius: var(--radius);
   outline: none;
 }
@@ -107,20 +197,74 @@ input[type='checkbox'] {
   height: 15px;
 }
 
+/* Bara de derulare: pista de 10px pentru tinta de prindere, dar o margine
+   transparenta de 2px lasa degetul vizibil la 6px. Culoarea e alb translucid,
+   nu o variabila din paleta, ca sa se vada si peste sticla, si peste fundal. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.42);
+  background-clip: padding-box;
+}
+
 /* ------------------------------------------------------------------ cadru */
 
 .app {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 236px 1fr;
   height: 100%;
 }
 
 .sidebar {
-  background: var(--bg-raised);
+  background: rgba(23, 24, 27, var(--sidebar-alpha));
+  backdrop-filter: blur(calc(var(--surface-blur) * var(--glass-blur-scale)))
+    saturate(var(--glass-saturate)) brightness(var(--glass-brightness));
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   min-height: 0;
+  position: relative;
+}
+
+/* Granulatia, pe suprafetele destul de mari cat sa se citeasca. Copiii sunt
+   ridicati un strat, ca textura sa ramana in spatele continutului. */
+.sidebar::after,
+.toolbar::after,
+.update-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--glass-noise);
+}
+
+.sidebar > *,
+.toolbar > *,
+.update-banner > * {
+  position: relative;
+  z-index: 1;
 }
 
 .brand {
@@ -134,10 +278,10 @@ input[type='checkbox'] {
   width: 26px;
   height: 26px;
   border-radius: 7px;
-  background: #1b2838;
+  background: rgba(var(--accent-rgb), 0.18);
   display: grid;
   place-items: center;
-  color: var(--accent);
+  color: var(--accent-light);
   font-size: 15px;
 }
 
@@ -147,7 +291,7 @@ input[type='checkbox'] {
 }
 
 .brand-ver {
-  color: var(--text-faint);
+  color: var(--text-2);
   font-size: 11px;
 }
 
@@ -159,7 +303,7 @@ input[type='checkbox'] {
 }
 
 .nav-group {
-  color: var(--text-faint);
+  color: var(--text-2);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.7px;
@@ -171,39 +315,39 @@ input[type='checkbox'] {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 7px 10px;
   border: none;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-1);
   border-radius: var(--radius);
   text-align: left;
 }
 
 .nav-item:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-0);
   border-color: transparent;
 }
 
 .nav-item.active {
-  background: var(--accent-dim);
+  background: rgba(var(--accent-rgb), 0.22);
   color: #fff;
 }
 
 .nav-item .count {
   margin-left: auto;
   font-size: 12px;
-  color: var(--text-faint);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 
 .nav-item.active .count {
-  color: #cfe9fa;
+  color: var(--accent-lighter);
 }
 
 .nav-item .dot {
   margin-left: auto;
-  background: var(--bad);
+  background: var(--danger);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -220,20 +364,20 @@ input[type='checkbox'] {
 
 .scanbar .line {
   font-size: 12px;
-  color: var(--text-dim);
+  color: var(--text-1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .scanbar .line.err {
-  color: var(--bad);
+  color: var(--danger);
   white-space: normal;
 }
 
 .progress {
   height: 4px;
-  background: var(--bg);
+  background: rgba(0, 0, 0, 0.4);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -252,22 +396,26 @@ input[type='checkbox'] {
 }
 
 .toolbar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 20px;
+  padding: 13px 20px;
   border-bottom: 1px solid var(--border);
+  background: rgba(23, 24, 27, var(--bar-alpha));
+  backdrop-filter: blur(calc(var(--surface-blur) * var(--glass-blur-scale)))
+    saturate(var(--glass-saturate)) brightness(var(--glass-brightness));
   flex-wrap: wrap;
 }
 
 .toolbar h1 {
-  font-size: 17px;
+  font-size: 16px;
   margin: 0;
   white-space: nowrap;
 }
 
 .toolbar .sub {
-  color: var(--text-faint);
+  color: var(--text-2);
   font-size: 12px;
 }
 
@@ -296,7 +444,8 @@ input[type='checkbox'] {
 }
 
 .tile {
-  background: var(--bg-raised);
+  background: rgba(30, 32, 36, var(--panel-alpha));
+  backdrop-filter: blur(calc(10px * var(--glass-blur-scale))) saturate(var(--glass-saturate));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px 16px;
@@ -304,7 +453,7 @@ input[type='checkbox'] {
 
 .tile .k {
   font-size: 12px;
-  color: var(--text-dim);
+  color: var(--text-1);
 }
 
 .tile .v {
@@ -320,7 +469,7 @@ input[type='checkbox'] {
 
 .section-title {
   font-size: 13px;
-  color: var(--text-dim);
+  color: var(--text-1);
   margin: 4px 0 10px;
   display: flex;
   align-items: center;
@@ -329,7 +478,7 @@ input[type='checkbox'] {
 
 .deals {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .deal {
@@ -337,19 +486,24 @@ input[type='checkbox'] {
   grid-template-columns: 128px 1fr auto;
   gap: 14px;
   align-items: center;
-  background: var(--bg-raised);
+  background: rgba(30, 32, 36, var(--panel-alpha));
+  backdrop-filter: blur(calc(8px * var(--glass-blur-scale))) saturate(var(--glass-saturate));
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px 14px 10px 10px;
+  padding: 9px 14px 9px 9px;
+  /* doar transform si umbra la hover: schimbarea fundalului ar pune la coada
+     zeci de repictari de backdrop-filter la trecerea cu mouse-ul peste lista */
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
 
 .deal:hover {
-  border-color: #38414f;
+  border-color: #3d4147;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
 .deal.is-free {
   border-color: #4a6b0f;
-  background: linear-gradient(90deg, rgba(164, 208, 7, 0.08), var(--bg-raised) 55%);
 }
 
 .deal img.capsule {
@@ -357,7 +511,8 @@ input[type='checkbox'] {
   height: 48px;
   object-fit: cover;
   border-radius: 4px;
-  background: var(--bg);
+  background: var(--bg-2);
+  cursor: pointer;
 }
 
 .deal .body {
@@ -366,9 +521,15 @@ input[type='checkbox'] {
 
 .deal .name {
   font-weight: 600;
+  font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.deal .name:hover {
+  color: var(--accent-light);
 }
 
 .deal .meta {
@@ -376,24 +537,24 @@ input[type='checkbox'] {
   gap: 10px;
   align-items: center;
   font-size: 12px;
-  color: var(--text-faint);
+  color: var(--text-2);
   flex-wrap: wrap;
 }
 
 .reviews.positive {
-  color: var(--good);
+  color: var(--success);
 }
 .reviews.mixed {
   color: var(--warn);
 }
 .reviews.negative {
-  color: var(--bad);
+  color: var(--danger);
 }
 
 .deal .right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .price {
@@ -402,7 +563,7 @@ input[type='checkbox'] {
 }
 
 .price .old {
-  color: var(--text-faint);
+  color: var(--text-2);
   text-decoration: line-through;
   font-size: 12px;
 }
@@ -434,20 +595,21 @@ input[type='checkbox'] {
 
 .badge.tier-free {
   background: var(--free);
+  color: #1a2400;
 }
 .badge.tier-under5 {
   background: var(--accent);
-  color: #06202e;
+  color: #fff;
 }
 .badge.tier-under10 {
-  background: #5b6bd6;
-  color: #fff;
+  background: var(--accent-dim);
+  color: #dce9ff;
 }
 
 .star {
   background: transparent;
   border-color: transparent;
-  color: var(--text-faint);
+  color: var(--text-2);
   font-size: 17px;
   padding: 2px 6px;
   line-height: 1;
@@ -459,12 +621,12 @@ input[type='checkbox'] {
 
 .empty {
   text-align: center;
-  color: var(--text-faint);
+  color: var(--text-2);
   padding: 60px 20px;
 }
 
 .empty h3 {
-  color: var(--text-dim);
+  color: var(--text-1);
   font-weight: 600;
   margin: 0 0 6px;
 }
@@ -478,7 +640,8 @@ input[type='checkbox'] {
 }
 
 .card {
-  background: var(--bg-raised);
+  background: rgba(30, 32, 36, var(--panel-alpha));
+  backdrop-filter: blur(calc(10px * var(--glass-blur-scale))) saturate(var(--glass-saturate));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px 18px;
@@ -490,7 +653,7 @@ input[type='checkbox'] {
 }
 
 .card p.hint {
-  color: var(--text-faint);
+  color: var(--text-2);
   font-size: 12px;
   margin: 0 0 14px;
 }
@@ -504,13 +667,17 @@ input[type='checkbox'] {
 
 .row label.k {
   width: 260px;
-  color: var(--text-dim);
+  color: var(--text-1);
   flex-shrink: 0;
 }
 
 .row .note {
-  color: var(--text-faint);
+  color: var(--text-2);
   font-size: 12px;
+}
+
+.note.warn {
+  color: var(--warn);
 }
 
 .row input[type='number'] {
@@ -527,19 +694,19 @@ input[type='checkbox'] {
   padding: 5px 12px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text-dim);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-1);
   font-size: 13px;
 }
 
 .pill.on {
-  background: var(--accent-dim);
+  background: rgba(var(--accent-rgb), 0.25);
   border-color: var(--accent-dim);
   color: #fff;
 }
 
 .event-time {
-  color: var(--text-faint);
+  color: var(--text-2);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -551,14 +718,96 @@ input[type='checkbox'] {
 }
 
 .update-banner {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 20px;
-  background: var(--accent-dim);
+  background: rgba(var(--accent-rgb), 0.2);
+  backdrop-filter: blur(calc(var(--surface-blur) * var(--glass-blur-scale)))
+    saturate(var(--glass-saturate));
+  border-bottom: 1px solid var(--accent-dim);
+}
+
+/* ------------------------------------------------------- fereastra jocului */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 30px;
+}
+
+.dialog {
+  width: min(820px, 100%);
+  max-height: 86vh;
+  overflow-y: auto;
+  background: rgba(23, 24, 27, 0.94);
+  backdrop-filter: blur(calc(20px * var(--glass-blur-scale))) saturate(var(--glass-saturate));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.dialog-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
   border-bottom: 1px solid var(--border);
 }
 
-.note.warn {
-  color: var(--warn);
+.dialog-head img {
+  width: 184px;
+  height: 69px;
+  object-fit: cover;
+  border-radius: 5px;
+  background: var(--bg-2);
+}
+
+.dialog-head h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.dialog-body {
+  padding: 16px 18px 20px;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 0 18px 16px;
+  flex-wrap: wrap;
+}
+
+.chart-wrap {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 12px 6px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  color: var(--text-2);
+  font-size: 12px;
+  padding: 10px 2px 0;
+}
+
+.chart-legend b {
+  color: var(--text-0);
+  font-variant-numeric: tabular-nums;
+}
+
+.spark {
+  display: block;
+  width: 100%;
+  height: auto;
 }

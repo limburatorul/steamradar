@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import type { AppConfig, DealEvent, StatsSummary, UpdateInfo, WatchItem } from '../shared/types'
-import { checkForUpdate, downloadAndRestart } from './updater'
+import { checkForUpdate, downloadAndRestart, scheduleUpdateChecks } from './updater'
 import { notificationIdentity } from './shortcut'
+import { clearHistory, getManySeries, getSeries, trackedKeys } from './history'
 import { applyQuery, type DealQuery, type DealQueryResult } from '../shared/query'
 import { dataRoot, loadConfig, saveConfig } from './config'
 import {
@@ -41,6 +42,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
       })
     }
     if (patch.fullIntervalMin !== undefined || patch.freeIntervalMin !== undefined) schedule()
+    if (patch.updateCheckMin !== undefined) scheduleUpdateChecks(next.updateCheckMin)
     return next
   })
   ipcMain.handle('config:data-folder', () => dataRoot())
@@ -121,10 +123,33 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
   )
   ipcMain.handle('update:identity', () => notificationIdentity())
 
+  ipcMain.handle('history:get', (_e, key: string) => getSeries(key))
+  ipcMain.handle('history:many', (_e, keys: string[]) => getManySeries(keys))
+  ipcMain.handle('history:tracked', () => trackedKeys())
+  ipcMain.handle('history:clear', () => clearHistory())
+
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('shell:open-external', async (_e, url: string) => {
     if (!/^https?:\/\//i.test(url)) return false
     await shell.openExternal(url)
     return true
+  })
+
+  /**
+   * Deschide pagina jocului in clientul Steam. `steam://` e inregistrat de
+   * client la instalare; daca lipseste, Windows n-ar face nimic vizibil, deci
+   * cad pe pagina din browser cand nu am appid sau cand omul a cerut altfel.
+   */
+  ipcMain.handle('shell:open-steam', async (_e, appid: number | null, fallbackUrl: string) => {
+    const cfg = await loadConfig()
+    if (cfg.openInSteamClient && appid) {
+      await shell.openExternal(`steam://store/${appid}`)
+      return true
+    }
+    if (/^https?:\/\//i.test(fallbackUrl)) {
+      await shell.openExternal(fallbackUrl)
+      return true
+    }
+    return false
   })
 }
