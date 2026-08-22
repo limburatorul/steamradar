@@ -134,6 +134,55 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
               </div>
             </div>
             <div className="row">
+              <label className="k">GOG deals</label>
+              <input
+                type="checkbox"
+                checked={config.notifyGog}
+                onChange={(e) => onChange({ notifyGog: e.target.checked })}
+              />
+              <span className="note">
+                GOG discounts go through the same thresholds as Steam; this only decides whether
+                they also raise a toast.
+              </span>
+            </div>
+            <div className="row">
+              <label className="k">Epic free games</label>
+              <div className="pill-row">
+                <button
+                  className={`pill${config.notifyEpic.free ? ' on' : ''}`}
+                  onClick={() =>
+                    onChange({ notifyEpic: { ...config.notifyEpic, free: !config.notifyEpic.free } })
+                  }
+                >
+                  Now claimable
+                </button>
+                <button
+                  className={`pill${config.notifyEpic.upcoming ? ' on' : ''}`}
+                  onClick={() =>
+                    onChange({
+                      notifyEpic: { ...config.notifyEpic, upcoming: !config.notifyEpic.upcoming }
+                    })
+                  }
+                >
+                  Announced next
+                </button>
+                <button
+                  className={`pill${config.notifyEpic.expiring ? ' on' : ''}`}
+                  onClick={() =>
+                    onChange({
+                      notifyEpic: { ...config.notifyEpic, expiring: !config.notifyEpic.expiring }
+                    })
+                  }
+                >
+                  A day before it ends
+                </button>
+              </div>
+            </div>
+            <p className="hint">
+              The last-chance reminder goes out whether or not you already claimed the game — that
+              only shows in your Epic account, which this app never asks for.
+            </p>
+            <div className="row">
               <label className="k">Mode</label>
               <select
                 value={config.notifyMode}

@@ -1,5 +1,6 @@
 import { Notification, shell } from 'electron'
-import type { AppConfig, Deal, DealEvent, Tier } from '../shared/types'
+import type { AppConfig, Deal, DealEvent, EpicFreeGame, Tier } from '../shared/types'
+import { STORE_LABEL } from '../shared/types'
 
 /**
  * Notificarile Windows.
@@ -88,7 +89,7 @@ function single(e: DealEvent, cfg: AppConfig): Parameters<typeof toast>[0] {
   const reviews = e.reviewPct != null ? ` · ${e.reviewPct}% of ${e.reviewCount ?? 0} reviews` : ''
   return {
     title: `${e.name} — ${price}`,
-    body: `-${e.discountPct}%${from}${reviews}`,
+    body: `${STORE_LABEL[e.store]} · -${e.discountPct}%${from}${reviews}`,
     silent: !cfg.notifySound,
     onClick: () => void shell.openExternal(e.url)
   }
@@ -116,5 +117,48 @@ export function notifyWatch(
       .join(', '),
     silent: !cfg.notifySound,
     onClick: () => showWindow?.()
+  })
+}
+
+/* --------------------------------------------------------------------- Epic */
+
+/**
+ * Anunturile Epic. Sunt cateva jocuri pe saptamana, deci fiecare primeste
+ * toast-ul lui - spre deosebire de praguri, unde vin sute deodata.
+ *
+ * Reminder-ul de expirare pleaca oricum, chiar daca ai revendicat deja jocul:
+ * revendicarea se vede doar in contul tau Epic, iar aplicatia nu cere si nici
+ * nu tine datele acelui cont.
+ */
+export function notifyEpic(
+  kind: 'free' | 'upcoming' | 'expiring',
+  games: EpicFreeGame[],
+  cfg: AppConfig
+): void {
+  for (const g of games) {
+    toast({
+      title:
+        kind === 'free'
+          ? `Free on Epic: ${g.title}`
+          : kind === 'upcoming'
+            ? `Free on Epic soon: ${g.title}`
+            : `Last chance: ${g.title}`,
+      body:
+        kind === 'upcoming'
+          ? `Free from ${when(g.startsAt)}${g.priceText ? ` · normally ${g.priceText}` : ''}`
+          : `Free until ${when(g.endsAt)}${g.priceText ? ` · normally ${g.priceText}` : ''}`,
+      silent: !cfg.notifySound,
+      onClick: () => void shell.openExternal(g.url)
+    })
+  }
+}
+
+/** Ora locala, ca sa se vada la ce ora a zilei se schimba oferta. */
+function when(iso: string): string {
+  return new Date(iso).toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
   })
 }

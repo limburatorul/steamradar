@@ -4,6 +4,7 @@ import type {
   AppConfig,
   Deal,
   DealEvent,
+  EpicFreeGame,
   PriceSeries,
   ScanStatus,
   StatsSummary,
@@ -29,6 +30,12 @@ const api = {
     query: (q: DealQuery): Promise<DealQueryResult> => ipcRenderer.invoke('deals:query', q),
     lookup: (keys: string[]): Promise<Deal[]> => ipcRenderer.invoke('deals:lookup', keys),
     stats: (): Promise<StatsSummary> => ipcRenderer.invoke('deals:stats')
+  },
+
+  epic: {
+    /** Jocurile gratuite de pe Epic, cele de acum si cele anuntate. */
+    list: (): Promise<{ updatedAt: string | null; games: EpicFreeGame[] }> =>
+      ipcRenderer.invoke('epic:list')
   },
 
   events: {

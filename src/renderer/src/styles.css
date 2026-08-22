@@ -355,6 +355,41 @@ input[type='checkbox'] {
   padding: 0 6px;
 }
 
+/* Comutatorul de magazin. Cele trei sectiuni sunt egale intre ele, deci sunt
+   un rand de trei, nu inca trei intrari in lista de mai jos - altfel n-ai vedea
+   ca schimbarea magazinului schimba toate paginile de dedesubt. */
+.stores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 12px 8px 2px;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.store-tab {
+  padding: 5px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-1);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.store-tab:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-0);
+  border-color: transparent;
+}
+
+.store-tab.active {
+  background: rgba(var(--accent-rgb), 0.28);
+  color: #fff;
+}
+
 .scanbar {
   border-top: 1px solid var(--border);
   padding: 12px;
@@ -465,6 +500,33 @@ input[type='checkbox'] {
 
 .tile.free .v {
   color: var(--free);
+}
+
+/* Prima cartela din rand spune al cui e randul; n-are cifra, ci numele. */
+.tile.store {
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: var(--accent-dim);
+}
+
+.tile.store .k {
+  font-weight: 700;
+  color: var(--text-0);
+  font-size: 14px;
+}
+
+.tile .v.small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  padding-top: 6px;
+}
+
+.tiles .tile:not(.store) {
+  cursor: pointer;
+}
+
+.tiles .tile.store {
+  cursor: pointer;
 }
 
 .section-title {
@@ -810,4 +872,92 @@ input[type='checkbox'] {
   display: block;
   width: 100%;
   height: auto;
+}
+
+/* ------------------------------------------------------------ jocurile Epic */
+
+/* La Epic nu urmaresti un pret, ci o fereastra de timp, deci cartela e alta
+   decat randul de oferta: imaginea mare (aia e tot ce recunosti dintr-un joc
+   pe care nu-l stii) si datele intre care il poti lua. */
+.epic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.epic-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(30, 32, 36, var(--panel-alpha));
+  backdrop-filter: blur(calc(8px * var(--glass-blur-scale))) saturate(var(--glass-saturate));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.epic-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.epic-card.is-free {
+  border-color: #4a6b0f;
+}
+
+.epic-card .epic-shot {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--bg-2);
+  cursor: pointer;
+  display: block;
+}
+
+.epic-body {
+  display: grid;
+  gap: 6px;
+  padding: 11px 12px 12px;
+}
+
+.epic-card .name {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.epic-card .name:hover {
+  color: var(--accent-light);
+}
+
+.epic-card .meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.epic-card .old {
+  text-decoration: line-through;
+}
+
+.epic-when {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.epic-when.now {
+  color: var(--free);
+}
+
+.epic-window {
+  font-size: 11px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  padding-bottom: 4px;
 }

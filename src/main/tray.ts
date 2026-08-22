@@ -1,7 +1,7 @@
 import { app, Menu, nativeImage, Tray } from 'electron'
 import { ICON_TRAY } from './icon'
 import { isScanning, scanFree, scanFull, tierOf } from './scanner'
-import { getCatalog } from './store'
+import { getCatalog, getEpic } from './store'
 import { loadConfig } from './config'
 
 /**
@@ -35,6 +35,8 @@ export async function refreshTray(showWindow: () => void): Promise<void> {
   if (!tray) return
   const cfg = await loadConfig()
   const cat = await getCatalog()
+  const epic = await getEpic()
+  const epicFree = epic.games.filter((g) => g.current).length
 
   let free = 0
   let under5 = 0
@@ -48,7 +50,7 @@ export async function refreshTray(showWindow: () => void): Promise<void> {
 
   tray.setToolTip(
     cat.updatedAt
-      ? `SteamRadar — ${free} free, ${under5} under ${cfg.thresholdLow}, ${under10} under ${cfg.thresholdHigh}`
+      ? `SteamRadar — ${free} free, ${under5} under ${cfg.thresholdLow}, ${under10} under ${cfg.thresholdHigh}, ${epicFree} free on Epic`
       : 'SteamRadar — no scan yet'
   )
 
@@ -57,6 +59,7 @@ export async function refreshTray(showWindow: () => void): Promise<void> {
       { label: 'Open SteamRadar', click: showWindow },
       { type: 'separator' },
       { label: `${free} free right now`, enabled: false },
+      { label: `${epicFree} free on Epic`, enabled: false },
       { label: `${under5} under ${cfg.thresholdLow}`, enabled: false },
       { label: `${under10} under ${cfg.thresholdHigh}`, enabled: false },
       { type: 'separator' },

@@ -1,3 +1,4 @@
+import { BROWSER_HEADERS, httpError } from './http'
 import type { Deal } from '../shared/types'
 
 /**
@@ -32,10 +33,6 @@ const ASSET_BASE = 'https://shared.fastly.steamstatic.com/store_item_assets/'
 
 /** Maximul acceptat de interogarea noua intr-o singura cerere. */
 export const QUERY_PAGE = 500
-
-/** Steam raspunde degradat la user-agenti evident automati. */
-const USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 
 /** Sortare alfabetica: singura care face paginarea repetabila. */
 const SORT_NAME = 1
@@ -126,7 +123,7 @@ export async function fetchDiscountedPage(
   signal?: AbortSignal
 ): Promise<QueryPage> {
   const res = await fetch(queryUrl(p), {
-    headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+    headers: BROWSER_HEADERS,
     signal
   })
   if (!res.ok) throw httpError(res.status, res.statusText, res.headers.get('retry-after'))
@@ -156,6 +153,7 @@ function toDeal(item: StoreItem): Deal | null {
 
   return {
     key: `App_${item.id}`,
+    store: 'steam',
     appid: item.appid ?? item.id,
     kind: item.type === TYPE_DLC ? 'dlc' : 'app',
     name: item.name,
@@ -217,7 +215,7 @@ export async function fetchFreeToKeep(
   })
 
   const res = await fetch(`${SEARCH_URL}?${q.toString()}`, {
-    headers: { 'User-Agent': USER_AGENT, Accept: 'application/json,text/javascript,*/*' },
+    headers: BROWSER_HEADERS,
     signal
   })
   if (!res.ok) throw httpError(res.status, res.statusText, res.headers.get('retry-after'))
@@ -275,6 +273,7 @@ export function parseRows(html: string): Deal[] {
 
     deals.push({
       key,
+      store: 'steam',
       appid: appidRaw ? Number(appidRaw) : null,
       kind: key.startsWith('Sub_') ? 'sub' : key.startsWith('Bundle_') ? 'bundle' : 'app',
       name: decode(name),
@@ -311,35 +310,6 @@ function parseMoney(text: string | null): number {
   const whole = digits.slice(0, sep).replace(/[.,]/g, '')
   const frac = digits.slice(sep + 1).padEnd(2, '0')
   return Number(whole) * 100 + Number(frac)
-}
-
-/* ------------------------------------------------------------------ erori */
-
-export class SteamHttpError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-    readonly retryAfterMs: number | null
-  ) {
-    super(message)
-    this.name = 'SteamHttpError'
-  }
-
-  /** 429 si 5xx trec; restul sunt greseli de-ale mele, n-are rost sa reincerc. */
-  get retryable(): boolean {
-    return this.status === 429 || this.status >= 500
-  }
-}
-
-function httpError(status: number, statusText: string, retryAfter: string | null): SteamHttpError {
-  const seconds = retryAfter ? Number(retryAfter) : NaN
-  return new SteamHttpError(
-    status,
-    status === 429
-      ? 'Steam a limitat cererile (429)'
-      : `Steam a raspuns cu ${status} ${statusText}`,
-    Number.isFinite(seconds) ? seconds * 1000 : null
-  )
 }
 
 /** Simbolul monedei, dedus din primul pret care are unul. E doar pentru afisaj. */

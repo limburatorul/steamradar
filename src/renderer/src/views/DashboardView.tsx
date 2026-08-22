@@ -1,25 +1,28 @@
 import { useEffect, useState } from 'react'
-import type { Deal, DealEvent, StatsSummary, Tier } from '@shared/types'
-import { TIER_LABEL } from '@shared/types'
+import type { Deal, DealEvent, EpicFreeGame, StatsSummary, Store, Tier } from '@shared/types'
+import { STORE_LABEL, TIER_LABEL } from '@shared/types'
 import DealRow from '../components/DealRow'
+import EpicCard from '../components/EpicCard'
 import { eventToDeal, num, timeAgo } from '../format'
 
 interface Props {
   watched: Set<string>
   onToggleWatch: (deal: Deal) => void
   onOpen: (deal: Deal) => void
-  onGoTo: (tier: Tier) => void
+  onGoTo: (store: Store, tier: Tier) => void
+  onGoToEpic: () => void
   lowThreshold: number
   highThreshold: number
   refreshKey: number
 }
 
-/** Ce s-a schimbat de cand n-ai fost atent: pragurile, apoi ultimele intrari. */
+/** Ce s-a schimbat de cand n-ai fost atent, la toate trei magazinele deodata. */
 export default function DashboardView({
   watched,
   onToggleWatch,
   onOpen,
   onGoTo,
+  onGoToEpic,
   lowThreshold,
   highThreshold,
   refreshKey
@@ -27,6 +30,7 @@ export default function DashboardView({
   const [stats, setStats] = useState<StatsSummary | null>(null)
   const [events, setEvents] = useState<DealEvent[]>([])
   const [freeDeals, setFreeDeals] = useState<Deal[]>([])
+  const [epic, setEpic] = useState<EpicFreeGame[]>([])
 
   useEffect(() => {
     void window.api.deals.stats().then(setStats)
@@ -34,6 +38,7 @@ export default function DashboardView({
     void window.api.deals
       .query({ tier: 'free', sort: 'reviews', limit: 20 })
       .then((r) => setFreeDeals(r.items))
+    void window.api.epic.list().then((r) => setEpic(r.games.filter((g) => g.current)))
   }, [refreshKey])
 
   return (
@@ -44,28 +49,59 @@ export default function DashboardView({
       </div>
 
       <div className="content">
+        {(['steam', 'gog'] as const).map((store) => {
+          const shop = stats?.[store]
+          return (
+            <div className="tiles" key={store}>
+              <div className="tile store" onClick={() => onGoTo(store, 'free')}>
+                <div className="k">{STORE_LABEL[store]}</div>
+                <div className="v small">{shop ? `${num(shop.tracked)} deals` : '—'}</div>
+              </div>
+              <div className="tile free" onClick={() => onGoTo(store, 'free')}>
+                <div className="k">Free right now</div>
+                <div className="v">{shop?.free ?? '—'}</div>
+              </div>
+              <div className="tile" onClick={() => onGoTo(store, 'under5')}>
+                <div className="k">Under {lowThreshold}</div>
+                <div className="v">{shop ? num(shop.under5) : '—'}</div>
+              </div>
+              <div className="tile" onClick={() => onGoTo(store, 'under10')}>
+                <div className="k">Under {highThreshold}</div>
+                <div className="v">{shop ? num(shop.under10) : '—'}</div>
+              </div>
+            </div>
+          )
+        })}
+
         <div className="tiles">
-          <div className="tile free" onClick={() => onGoTo('free')} style={{ cursor: 'pointer' }}>
+          <div className="tile store" onClick={onGoToEpic}>
+            <div className="k">Epic</div>
+            <div className="v small">weekly giveaways</div>
+          </div>
+          <div className="tile free" onClick={onGoToEpic}>
             <div className="k">Free right now</div>
-            <div className="v">{stats?.free ?? '—'}</div>
+            <div className="v">{stats?.epic.current ?? '—'}</div>
           </div>
-          <div className="tile" onClick={() => onGoTo('under5')} style={{ cursor: 'pointer' }}>
-            <div className="k">Under {lowThreshold}</div>
-            <div className="v">{stats ? num(stats.under5) : '—'}</div>
-          </div>
-          <div className="tile" onClick={() => onGoTo('under10')} style={{ cursor: 'pointer' }}>
-            <div className="k">Under {highThreshold}</div>
-            <div className="v">{stats ? num(stats.under10) : '—'}</div>
-          </div>
-          <div className="tile">
-            <div className="k">Deals tracked</div>
-            <div className="v">{stats ? num(stats.tracked) : '—'}</div>
+          <div className="tile" onClick={onGoToEpic}>
+            <div className="k">Announced next</div>
+            <div className="v">{stats?.epic.upcoming ?? '—'}</div>
           </div>
           <div className="tile">
             <div className="k">Alerts in 24 h</div>
             <div className="v">{stats?.eventsToday ?? '—'}</div>
           </div>
         </div>
+
+        {epic.length > 0 && (
+          <>
+            <div className="section-title">Free on Epic — claim them and they stay yours</div>
+            <div className="epic-grid" style={{ marginBottom: 22 }}>
+              {epic.map((g) => (
+                <EpicCard key={g.id} game={g} />
+              ))}
+            </div>
+          </>
+        )}
 
         {freeDeals.length > 0 && (
           <>

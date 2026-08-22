@@ -1,5 +1,12 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
-import type { AppConfig, DealEvent, StatsSummary, UpdateInfo, WatchItem } from '../shared/types'
+import type {
+  AppConfig,
+  DealEvent,
+  StatsSummary,
+  StoreStats,
+  UpdateInfo,
+  WatchItem
+} from '../shared/types'
 import { checkForUpdate, downloadAndRestart, scheduleUpdateChecks } from './updater'
 import { notificationIdentity } from './shortcut'
 import { clearHistory, getManySeries, getSeries, trackedKeys } from './history'
@@ -19,6 +26,7 @@ import {
   addWatch,
   clearEvents,
   getCatalog,
+  getEpic,
   getEvents,
   getWatchlist,
   markEventsSeen,
@@ -72,26 +80,36 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('deals:stats', async (): Promise<StatsSummary> => {
     const cfg = await loadConfig()
     const cat = await getCatalog()
+    const epic = await getEpic()
     const events = await getEvents()
     const since = new Date(Date.now() - 24 * 3600_000).toISOString()
 
-    let free = 0
-    let under5 = 0
-    let under10 = 0
+    // fiecare magazin isi numara singur pragurile: sectiunile din interfata sunt
+    // separate, iar un total amestecat n-ar spune nimic despre niciuna
+    const steam: StoreStats = { tracked: 0, free: 0, under5: 0, under10: 0 }
+    const gog: StoreStats = { tracked: 0, free: 0, under5: 0, under10: 0 }
     for (const d of cat.deals) {
+      const bucket = d.store === 'gog' ? gog : steam
+      bucket.tracked++
       const tier = tierOf(d.priceFinal, cfg)
-      if (tier === 'free') free++
-      else if (tier === 'under5') under5++
-      else if (tier === 'under10') under10++
+      if (tier) bucket[tier]++
     }
+
     return {
-      tracked: cat.deals.length,
-      free,
-      under5,
-      under10,
+      steam,
+      gog,
+      epic: {
+        current: epic.games.filter((g) => g.current).length,
+        upcoming: epic.games.filter((g) => !g.current).length
+      },
       eventsToday: events.filter((e) => e.at >= since).length,
       unseen: events.filter((e) => !e.seen).length
     }
+  })
+
+  ipcMain.handle('epic:list', async () => {
+    const epic = await getEpic()
+    return { updatedAt: epic.updatedAt, games: epic.games }
   })
 
   ipcMain.handle('events:list', async (_e, tier?: DealEvent['tier'] | null) => {

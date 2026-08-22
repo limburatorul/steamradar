@@ -1,7 +1,7 @@
 {
   "name": "steamradar",
-  "version": "0.3.0",
-  "description": "Vaneaza reduceri pe Steam si alerteaza cand jocurile devin gratis, sub 5 EUR sau sub 10 EUR",
+  "version": "0.4.0",
+  "description": "Vaneaza reduceri pe Steam si GOG, plus jocurile gratuite de pe Epic, si alerteaza cand jocurile devin gratis, sub 5 EUR sau sub 10 EUR",
   "main": "out/main/index.js",
   "author": "tucu",
   "license": "MIT",

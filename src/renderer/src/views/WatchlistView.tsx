@@ -38,6 +38,7 @@ export default function WatchlistView({
   const asDeal = (w: WatchItem): Deal =>
     current.get(w.key) ?? {
       key: w.key,
+      store: w.store,
       appid: w.appid,
       kind: 'app',
       name: w.name,

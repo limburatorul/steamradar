@@ -3,6 +3,41 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.4.0] — 2026-08-23
+
+### Adăugat
+
+- **Trei secțiuni în loc de una: Steam, Epic și GOG**, comutate din bara
+  laterală. Radar-ul le arată pe toate trei deodată; paginile de praguri sunt
+  ale magazinului ales.
+- **Jocurile gratuite de pe Epic**, cu poză, nume și fereastra exactă în care pot
+  fi luate — și cele revendicabile acum, și cele anunțate pentru săptămânile
+  următoare. Trei anunțuri separate, fiecare pornit sau oprit din Settings: a
+  devenit revendicabil, s-a anunțat ce urmează, mai e o zi până expiră.
+- **Reducerile de pe GOG**, în același catalog cu cele de pe Steam: aceleași
+  praguri, același istoric de preț, aceeași listă de urmărire. Plus verificarea
+  giveaway-ului lor la fiecare scanare rapidă.
+
+### Schimbat
+
+- Notificările de prag spun acum din ce magazin vine jocul.
+- Butonul din dreapta rândului deschide clientul Steam doar pentru jocurile de pe
+  Steam; pentru GOG și Epic deschide pagina din magazin.
+- Bara de progres numără cererile din toată scanarea, nu doar pe cele de la
+  Steam. O măturare completă înseamnă acum ~53 de cereri, în jur de un minut.
+
+### Note despre surse
+
+- **Reducerile Epic nu se pot citi.** GraphQL-ul magazinului răspunde 403 cu
+  provocare Cloudflare și pe POST, și pe GET. Doar hostul static cu jocurile
+  gratuite e liber, iar ocolirea provocării ar fi evitare de detecție de boți.
+- **GOG ignoră `countryCode` când alege moneda** — fără `currencyCode` explicit,
+  RO primește prețuri în USD, iar amestecate cu cele în EUR de la Steam ar strica
+  pragurile. Moneda se deduce din țară, iar `npm run probe` verifică potrivirea.
+- O măturare GOG întreruptă la mijloc nu se salvează parțial: se păstrează
+  fotografia precedentă. Un catalog GOG incomplet ar face scanarea următoare să
+  creadă că tot ce lipsește tocmai a intrat la reducere.
+
 ## [0.3.0] — 2026-08-17
 
 ### Adăugat

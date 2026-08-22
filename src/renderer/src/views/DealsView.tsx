@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Deal, Tier } from '@shared/types'
+import type { Deal, Store, Tier } from '@shared/types'
 import type { DealQuery, SortKey } from '@shared/query'
 import DealRow from '../components/DealRow'
 import { num } from '../format'
@@ -16,6 +16,7 @@ const SORTS: Array<{ k: SortKey; label: string }> = [
 ]
 
 interface Props {
+  store: Store
   tier: Tier | null
   title: string
   hint: string
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function DealsView({
+  store,
   tier,
   title,
   hint,
@@ -51,11 +53,11 @@ export default function DealsView({
     setLimit(PAGE)
     setSearch('')
     setMinDiscount(0)
-  }, [tier])
+  }, [tier, store])
 
   useEffect(() => {
     let alive = true
-    const q: DealQuery = { tier, search, sort, minDiscount, reviewedOnly, limit, offset: 0 }
+    const q: DealQuery = { store, tier, search, sort, minDiscount, reviewedOnly, limit, offset: 0 }
     // mica intarziere ca sa nu interoghez la fiecare litera tastata
     const t = setTimeout(
       () => {
@@ -73,7 +75,7 @@ export default function DealsView({
       alive = false
       clearTimeout(t)
     }
-  }, [tier, search, sort, minDiscount, reviewedOnly, limit, refreshKey])
+  }, [store, tier, search, sort, minDiscount, reviewedOnly, limit, refreshKey])
 
   return (
     <>

@@ -21,6 +21,8 @@ const DEFAULTS: AppConfig = {
   thresholdLow: 5,
   thresholdHigh: 10,
   notify: { free: true, under5: true, under10: true },
+  notifyGog: true,
+  notifyEpic: { free: true, upcoming: true, expiring: true },
   notifyMode: 'grouped',
   notifySound: true,
   includeDlc: false,
@@ -60,7 +62,12 @@ export async function loadConfig(): Promise<AppConfig> {
     const raw = await fs.readFile(configFile(), 'utf8')
     const parsed = JSON.parse(raw) as Partial<AppConfig>
     // merge cu DEFAULTS ca sa nu crape dupa ce adaug campuri noi intr-o versiune viitoare
-    cached = { ...DEFAULTS, ...parsed, notify: { ...DEFAULTS.notify, ...(parsed.notify ?? {}) } }
+    cached = {
+      ...DEFAULTS,
+      ...parsed,
+      notify: { ...DEFAULTS.notify, ...(parsed.notify ?? {}) },
+      notifyEpic: { ...DEFAULTS.notifyEpic, ...(parsed.notifyEpic ?? {}) }
+    }
   } catch {
     cached = { ...DEFAULTS }
   }
@@ -72,7 +79,8 @@ export async function saveConfig(patch: Partial<AppConfig>): Promise<AppConfig> 
   const next: AppConfig = {
     ...current,
     ...patch,
-    notify: { ...current.notify, ...(patch.notify ?? {}) }
+    notify: { ...current.notify, ...(patch.notify ?? {}) },
+    notifyEpic: { ...current.notifyEpic, ...(patch.notifyEpic ?? {}) }
   }
   await fs.mkdir(path.dirname(configFile()), { recursive: true })
   await fs.writeFile(configFile(), JSON.stringify(next, null, 2), 'utf8')
@@ -81,5 +89,5 @@ export async function saveConfig(patch: Partial<AppConfig>): Promise<AppConfig> 
 }
 
 export function defaultConfig(): AppConfig {
-  return { ...DEFAULTS, notify: { ...DEFAULTS.notify } }
+  return { ...DEFAULTS, notify: { ...DEFAULTS.notify }, notifyEpic: { ...DEFAULTS.notifyEpic } }
 }

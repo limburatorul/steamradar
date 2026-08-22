@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Deal, PriceSeries } from '@shared/types'
+import { STORE_LABEL } from '@shared/types'
 import PriceChart from './PriceChart'
 import { count, endsIn, reviewLabel, reviewTone } from '../format'
 
@@ -99,9 +100,12 @@ export default function GameDialog({
         <div className="dialog-actions">
           <button
             className="primary"
-            onClick={() => void window.api.openInSteam(deal.appid, deal.url)}
+            onClick={() => {
+              if (deal.store === 'steam') void window.api.openInSteam(deal.appid, deal.url)
+              else void window.api.openExternal(deal.url)
+            }}
           >
-            Open in Steam
+            Open in {STORE_LABEL[deal.store]}
           </button>
           <button onClick={() => void window.api.openExternal(deal.url)}>Store page in browser</button>
           <button className={watched ? 'danger' : ''} onClick={() => onToggleWatch(deal)}>

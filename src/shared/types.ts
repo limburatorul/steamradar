@@ -1,3 +1,14 @@
+/** Magazinele urmarite. Fiecare are sectiunea lui in interfata. */
+export type Store = 'steam' | 'epic' | 'gog'
+
+export const STORES: Store[] = ['steam', 'epic', 'gog']
+
+export const STORE_LABEL: Record<Store, string> = {
+  steam: 'Steam',
+  epic: 'Epic',
+  gog: 'GOG'
+}
+
 /** Pragurile de pret pe care le urmarim, in ordinea importantei. */
 export type Tier = 'free' | 'under5' | 'under10'
 
@@ -11,8 +22,13 @@ export const TIER_LABEL: Record<Tier, string> = {
 
 /** Un joc asa cum il vede aplicatia dupa ce a citit rezultatul de la Steam. */
 export interface Deal {
-  /** Cheia unica din Steam: `App_570`, `Sub_12345`, `Bundle_678`. */
+  /**
+   * Cheia unica in tot catalogul. La Steam e cea data de ei (`App_570`,
+   * `Sub_12345`), la GOG e `Gog_<id>` - prefixul tine cele doua magazine
+   * separate intr-un singur fisier, fara sa se calce pe id-uri.
+   */
   key: string
+  store: Store
   appid: number | null
   kind: 'app' | 'dlc' | 'sub' | 'bundle'
   name: string
@@ -39,6 +55,7 @@ export interface Deal {
 export interface DealEvent {
   id: string
   key: string
+  store: Store
   name: string
   appid: number | null
   url: string
@@ -62,6 +79,7 @@ export interface DealEvent {
 
 export interface WatchItem {
   key: string
+  store: Store
   appid: number | null
   name: string
   url: string
@@ -74,7 +92,7 @@ export interface WatchItem {
   targetPrice: number | null
 }
 
-export type ScanPhase = 'idle' | 'free' | 'tiers' | 'top' | 'done' | 'error'
+export type ScanPhase = 'idle' | 'free' | 'tiers' | 'gog' | 'epic' | 'top' | 'done' | 'error'
 
 export interface ScanStatus {
   phase: ScanPhase
@@ -85,6 +103,7 @@ export interface ScanStatus {
   message: string
   lastFullScan: string | null
   lastFreeScan: string | null
+  lastEpicScan: string | null
   nextScanAt: string | null
   error: string | null
 }
@@ -104,6 +123,9 @@ export interface AppConfig {
   thresholdLow: number
   thresholdHigh: number
   notify: Record<Tier, boolean>
+  /** Reducerile GOG trec prin aceleasi praguri; asta decide daca si alerteaza. */
+  notifyGog: boolean
+  notifyEpic: EpicNotify
   /** Grupat = un toast pe ciclu cu totalul; individual = cate un toast de joc. */
   notifyMode: 'grouped' | 'individual'
   notifySound: boolean
@@ -120,6 +142,34 @@ export interface AppConfig {
   glassStyle: GlassStyle
   /** Fundalul rotativ construit din capsulele ofertelor. */
   backdrop: boolean
+}
+
+export interface EpicNotify {
+  /** Cand un joc devine revendicabil. */
+  free: boolean
+  /** Cand Epic anunta ce urmeaza sa fie gratis. */
+  upcoming: boolean
+  /** Cu o zi inainte sa expire promotia. */
+  expiring: boolean
+}
+
+/**
+ * Un joc gratis de pe Epic. N-are pret, prag sau reducere de comparat, are doar
+ * o fereastra de timp - de aceea nu trece prin `Deal`, ci isi are forma lui.
+ */
+export interface EpicFreeGame {
+  id: string
+  title: string
+  image: string | null
+  url: string
+  /** Pretul de lista, ca sa se vada cat dai gratis. Bundle-urile n-au. */
+  priceText: string | null
+  offerType: string
+  /** ISO. Fereastra in care jocul e (sau va fi) gratis. */
+  startsAt: string
+  endsAt: string
+  /** Revendicabil chiar acum, sau doar anuntat pentru mai tarziu. */
+  current: boolean
 }
 
 export type GlassStyle = 'glass' | 'acrylic' | 'frosted'
@@ -155,11 +205,18 @@ export interface UpdateProgress {
   message?: string
 }
 
-export interface StatsSummary {
+export interface StoreStats {
   tracked: number
   free: number
   under5: number
   under10: number
+}
+
+export interface StatsSummary {
+  steam: StoreStats
+  gog: StoreStats
+  /** Epic nu are praguri, doar cate jocuri sunt gratis acum si cate urmeaza. */
+  epic: { current: number; upcoming: number }
   eventsToday: number
   unseen: number
 }

@@ -4,6 +4,7 @@ import type { Deal, DealEvent } from '@shared/types'
 export function eventToDeal(e: DealEvent): Deal {
   return {
     key: e.key,
+    store: e.store,
     appid: e.appid,
     kind: 'app',
     name: e.name,
@@ -75,4 +76,23 @@ export function clock(iso: string | null): string {
 
 export function num(n: number | null | undefined): string {
   return n == null ? '' : n.toLocaleString('en-US')
+}
+
+/** Cat mai e pana la un moment din viitor. Pentru ferestrele Epic. */
+export function countdown(iso: string): string {
+  const h = Math.round((Date.parse(iso) - Date.now()) / 3600_000)
+  if (h <= 0) return 'a moment'
+  if (h < 24) return `${h} h`
+  const d = Math.round(h / 24)
+  return `${d} ${d === 1 ? 'day' : 'days'}`
+}
+
+/** Ora locala, ca sa se vada la ce ora a zilei se schimba oferta Epic. */
+export function dateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }

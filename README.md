@@ -1,14 +1,21 @@
 # SteamRadar
 
-Aplicație Electron care urmărește reducerile de pe Steam și te anunță când un joc
-intră într-un prag de preț. Pragul care contează cel mai mult e **gratis** — jocurile
-puse la -100%, adică cele pe care le adaugi definitiv în bibliotecă dacă prinzi
-promoția. Următoarele praguri sunt **sub 5** și **sub 10** (implicit euro).
+Aplicație Electron care urmărește reducerile de pe **Steam**, **GOG** și jocurile
+gratuite de pe **Epic**, și te anunță când un joc intră într-un prag de preț.
+Pragul care contează cel mai mult e **gratis** — jocurile puse la -100%, adică
+cele pe care le adaugi definitiv în bibliotecă dacă prinzi promoția. Următoarele
+praguri sunt **sub 5** și **sub 10** (implicit euro).
+
+Interfața are trei secțiuni, comutate din bara laterală. Steam și GOG merg pe
+același mecanism — catalog, praguri, istoric de preț, listă de urmărire — fiindcă
+amândouă dau prețuri. Epic n-are prețuri de citit (vezi mai jos), deci secțiunea
+lui arată doar jocurile date gratis: cele revendicabile acum și cele anunțate
+pentru săptămânile următoare, cu poză, nume și datele exacte.
 
 Rulează în tray, verifică singură în fundal, notificări Windows native.
 Interfața e în engleză; comentariile din cod și notele astea rămân în română.
 
-## Cum ia datele
+## Cum ia datele — Steam
 
 Steam nu are un API oficial de reduceri. Aplicația folosește două surse, fiecare
 pentru ce știe să facă, ambele fără cheie și fără anti-bot:
@@ -41,6 +48,58 @@ Interogarea se face mereu cu `l=english`, ca tiparul recenziilor să fie acelaș
 indiferent de țară; prețul vine tot în moneda locală, fiindcă de monedă răspunde
 `cc`, nu limba.
 
+## Cum ia datele — GOG
+
+O singură sursă: `catalog.gog.com/v1/catalog`, catalogul pe care îl folosește
+chiar magazinul lor. Răspunde anonim, în JSON, cu prețul deja formatat și
+procentul. Ofertele intră în **același catalog** ca cele de pe Steam și trec prin
+aceleași praguri, același istoric de preț și aceeași listă de urmărire — se
+deosebesc prin câmpul `store` și prin prefixul cheii (`Gog_`).
+
+Patru lucruri măsurate pe viu:
+
+- **GOG ignoră `countryCode` când alege moneda.** Fără `currencyCode` explicit,
+  RO primește prețuri în **USD**, deși Steam dă EUR pentru aceeași țară. Cum
+  ambele magazine ajung în același catalog, două monede amestecate ar strica și
+  pragurile, și alertele. De aceea moneda se deduce din țară, cu un tabel scurt
+  în `src/main/gog.ts`, iar `npm run probe` verifică explicit că Steam și GOG
+  răspund în aceeași monedă.
+- **Maximul e 100 de itemi pe cerere** — la 200 răspunde 400. Tot ce e la
+  reducere (~3700 cu pachete) încape în **38 de cereri**.
+- **Paginarea e repetabilă cu `order=desc:title`**: aceeași pagină cerută de două
+  ori a întors aceleași 100 de jocuri (spre deosebire de Steam fără sortare).
+- **Coperta implicită e un PNG de 1,4 MB.** Cu formatorul
+  `_product_tile_extended_432x243.webp` scade la **30 KB**, la aceeași lățime cu
+  rândul din listă.
+
+Giveaway-ul GOG (`giveaway/api/getGiveawayDetails`) e verificat la fiecare
+scanare rapidă, dar răspunde 404 aproape tot timpul — GOG dă un joc gratis de
+câteva ori pe an, nu săptămânal. 404 înseamnă „niciunul acum", nu eroare.
+
+## Cum ia datele — Epic
+
+**Reducerile Epic nu se pot citi.** GraphQL-ul magazinului
+(`store.epicgames.com/graphql`) răspunde **403 cu provocare Cloudflare** și pe
+POST, și pe GET, cu antete normale de browser. Nu există ocolire care să nu fie
+evitare de detecție de boți, iar o sursă ținută cu artificii s-ar strica la prima
+schimbare de la ei. De aceea secțiunea Epic are numai jocuri gratuite.
+
+Sursa lor, `store-site-backend-static.ak.epicgames.com/freeGamesPromotions`, e pe
+hostul static Akamai, în afara Cloudflare: o singură cerere anonimă, ~1 secundă,
+și întoarce deodată și ce e gratis acum, și ce a anunțat Epic pentru săptămânile
+următoare, cu datele exacte de început și de sfârșit.
+
+Două lucruri măsurate:
+
+- **Lista conține și promoții care nu sunt gratuite.** În aceeași cerere au venit
+  oferte anunțate la -20%, -25%, -40% și -50%. Singurul semn că un joc chiar e
+  gratis e `discountPercentage === 0` — cât rămâne de plătit din prețul de listă,
+  nu reducerea. Fără filtrul ăsta, secțiunea ar anunța ca „gratis" jocuri care
+  costă.
+- **Prețul de listă vine în moneda Epic a țării** (RON pentru RO), nu în cea a
+  catalogului Steam/GOG. Nu se amestecă nicăieri, fiindcă la Epic nu există prag
+  de preț — e doar textul „normally RON 116.99" de pe cartelă.
+
 ## Alertele
 
 La prima pornire aplicația doar construiește referința — n-are cu ce compara, deci
@@ -55,6 +114,16 @@ devenite gratis primesc notificare proprie în ambele moduri.
 
 Lista de urmărire e singurul loc care alertează și la scăderi care nu ating niciun
 prag: pui steaua pe un joc de 40 și afli când ajunge la 24. Opțional cu preț țintă.
+
+Reducerile GOG trec prin aceleași praguri ca cele de pe Steam; în Settings se
+poate opri doar notificarea lor, nu și urmărirea. Epic are trei anunțuri
+separate, fiecare pornit sau oprit din Settings: **un joc a devenit
+revendicabil**, **Epic a anunțat ce urmează** și **mai e o zi până expiră**.
+Fiecare pleacă o singură dată pe joc, iar la prima verificare aplicația doar
+construiește referința — altfel, la prima pornire ai primi deodată și jocurile
+anunțate pentru peste o lună. Reminderul de expirare pleacă indiferent dacă ai
+revendicat deja jocul: asta se vede doar în contul tău Epic, pe care aplicația
+nu-l cere și nu-l atinge.
 
 ## Istoricul de preț
 
@@ -122,9 +191,10 @@ npm run dev
 Alte comenzi:
 
 - `npm run typecheck` — verifică tipurile pe ambele proiecte (main și interfață)
-- `npm run probe` — lovește Steam pe viu și arată dacă endpointul și parserul mai
-  merg. De rulat primul când aplicația nu mai găsește nimic: sursa se strică mai
-  des decât codul.
+- `npm run probe` — lovește toate cele trei magazine pe viu și arată dacă
+  endpointurile și parserele mai merg, inclusiv dacă Steam și GOG răspund în
+  aceeași monedă. De rulat primul când aplicația nu mai găsește nimic: sursa se
+  strică mai des decât codul.
 - `npm run dist` — construiește `release/SteamRadar-<ver>-portabil.exe`
 - `node scripts/make-icons.mjs` — regenerează iconițele (desenate din cod)
 
@@ -135,6 +205,8 @@ poată fi mutată pe stick cu tot cu istoric. Altfel în `%APPDATA%/steamradar`.
 
 - `config.json` — praguri, intervale, notificări, aspect
 - `history.json` — evoluția prețului pentru jocurile ajunse în praguri
-- `catalog.json` — ofertele de acum; e și fotografia față de care se compară
+- `catalog.json` — ofertele de acum, Steam și GOG laolaltă; e și fotografia față
+  de care se compară
+- `epic.json` — jocurile gratuite de pe Epic și ce anunțuri s-au dat deja
 - `events.json` — istoricul intrărilor în praguri (ultimele 3000)
 - `watchlist.json` — jocurile urmărite

@@ -1,8 +1,10 @@
-import type { Deal, Tier } from './types'
+import type { Deal, Store, Tier } from './types'
 
 export type SortKey = 'discount' | 'price' | 'priceDesc' | 'reviews' | 'reviewPct' | 'name'
 
 export interface DealQuery {
+  /** Gol = toate magazinele. Steam si GOG stau in acelasi catalog. */
+  store?: Store | null
   /** Gol = tot catalogul, indiferent de prag. */
   tier?: Tier | null
   search?: string
@@ -33,6 +35,7 @@ export function applyQuery(deals: Deal[], q: DealQuery, thresholds: [number, num
   const needle = q.search?.trim().toLowerCase()
 
   const filtered = deals.filter((d) => {
+    if (q.store && d.store !== q.store) return false
     if (q.tier === 'free' && d.priceFinal > 0) return false
     if (q.tier === 'under5' && (d.priceFinal <= 0 || d.priceFinal >= low * 100)) return false
     if (q.tier === 'under10' && (d.priceFinal <= 0 || d.priceFinal >= high * 100)) return false

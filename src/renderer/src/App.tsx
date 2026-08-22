@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { AppConfig, Deal, ScanStatus, StatsSummary, Tier, WatchItem } from '@shared/types'
+import type { AppConfig, Deal, ScanStatus, StatsSummary, Store, Tier, WatchItem } from '@shared/types'
+import { STORE_LABEL, STORES } from '@shared/types'
 import DashboardView from './views/DashboardView'
 import DealsView from './views/DealsView'
+import EpicView from './views/EpicView'
 import HistoryView from './views/HistoryView'
 import SettingsView from './views/SettingsView'
 import WatchlistView from './views/WatchlistView'
@@ -10,10 +12,12 @@ import GameDialog from './components/GameDialog'
 import Backdrop from './components/Backdrop'
 import { clock, num } from './format'
 
-type Page = 'radar' | 'free' | 'under5' | 'under10' | 'top' | 'watch' | 'history' | 'settings'
+type Page = 'radar' | 'free' | 'under5' | 'under10' | 'top' | 'epic' | 'watch' | 'history' | 'settings'
 
 export default function App(): React.JSX.Element {
   const [page, setPage] = useState<Page>('radar')
+  // magazinul ales schimba doar paginile de praguri; Radar le arata pe toate trei
+  const [store, setStore] = useState<Store>('steam')
   const [config, setConfig] = useState<AppConfig | null>(null)
   const [status, setStatus] = useState<ScanStatus | null>(null)
   const [stats, setStats] = useState<StatsSummary | null>(null)
@@ -56,6 +60,7 @@ export default function App(): React.JSX.Element {
     void window.api.watch
       .add({
         key: deal.key,
+        store: deal.store,
         appid: deal.appid,
         name: deal.name,
         url: deal.url,
@@ -72,12 +77,21 @@ export default function App(): React.JSX.Element {
     void window.api.watch.update(key, patch).then(setWatchlist)
   }
 
+  /** Epic n-are praguri de pret, deci schimbarea magazinului muta si pagina. */
+  const pickStore = (next: Store): void => {
+    setStore(next)
+    if (next === 'epic') setPage('epic')
+    else if (page === 'epic' || page === 'radar') setPage('free')
+  }
+
   const watched = new Set(watchlist.map((w) => w.key))
   const scanning = status ? status.phase !== 'idle' && status.phase !== 'error' : false
   const pct =
     status && status.totalPages > 0 ? Math.round((status.page / status.totalPages) * 100) : 0
   const low = config?.thresholdLow ?? 5
   const high = config?.thresholdHigh ?? 10
+  const shop = store === 'gog' ? stats?.gog : stats?.steam
+  const label = STORE_LABEL[store]
 
   return (
     <>
@@ -101,33 +115,59 @@ export default function App(): React.JSX.Element {
             {stats && stats.unseen > 0 && <span className="dot">{stats.unseen}</span>}
           </button>
 
-          <div className="nav-group">Thresholds</div>
-          <button
-            className={`nav-item${page === 'free' ? ' active' : ''}`}
-            onClick={() => setPage('free')}
-          >
-            Free right now <span className="count">{stats?.free ?? ''}</span>
-          </button>
-          <button
-            className={`nav-item${page === 'under5' ? ' active' : ''}`}
-            onClick={() => setPage('under5')}
-          >
-            Under {low} <span className="count">{stats ? num(stats.under5) : ''}</span>
-          </button>
-          <button
-            className={`nav-item${page === 'under10' ? ' active' : ''}`}
-            onClick={() => setPage('under10')}
-          >
-            Under {high} <span className="count">{stats ? num(stats.under10) : ''}</span>
-          </button>
+          <div className="stores">
+            {STORES.map((s) => (
+              <button
+                key={s}
+                className={`store-tab${store === s && page !== 'radar' ? ' active' : ''}`}
+                onClick={() => pickStore(s)}
+              >
+                {STORE_LABEL[s]}
+              </button>
+            ))}
+          </div>
+
+          {store === 'epic' ? (
+            <>
+              <div className="nav-group">Epic</div>
+              <button
+                className={`nav-item${page === 'epic' ? ' active' : ''}`}
+                onClick={() => setPage('epic')}
+              >
+                Free games <span className="count">{stats?.epic.current || ''}</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="nav-group">{label} thresholds</div>
+              <button
+                className={`nav-item${page === 'free' ? ' active' : ''}`}
+                onClick={() => setPage('free')}
+              >
+                Free right now <span className="count">{shop?.free || ''}</span>
+              </button>
+              <button
+                className={`nav-item${page === 'under5' ? ' active' : ''}`}
+                onClick={() => setPage('under5')}
+              >
+                Under {low} <span className="count">{shop ? num(shop.under5) : ''}</span>
+              </button>
+              <button
+                className={`nav-item${page === 'under10' ? ' active' : ''}`}
+                onClick={() => setPage('under10')}
+              >
+                Under {high} <span className="count">{shop ? num(shop.under10) : ''}</span>
+              </button>
+              <button
+                className={`nav-item${page === 'top' ? ' active' : ''}`}
+                onClick={() => setPage('top')}
+              >
+                Top discounts <span className="count">{shop ? num(shop.tracked) : ''}</span>
+              </button>
+            </>
+          )}
 
           <div className="nav-group">Hunting</div>
-          <button
-            className={`nav-item${page === 'top' ? ' active' : ''}`}
-            onClick={() => setPage('top')}
-          >
-            Top discounts <span className="count">{stats ? num(stats.tracked) : ''}</span>
-          </button>
           <button
             className={`nav-item${page === 'watch' ? ' active' : ''}`}
             onClick={() => setPage('watch')}
@@ -161,13 +201,14 @@ export default function App(): React.JSX.Element {
           </div>
           {scanning && status && status.totalPages > 0 && (
             <div className="line">
-              page {status.page} of {status.totalPages} · {num(status.found)} deals
+              request {status.page} of {status.totalPages} · {num(status.found)} deals
             </div>
           )}
           {!scanning && (
             <div className="line">
               last full scan {clock(status?.lastFullScan ?? null)} · free{' '}
-              {clock(status?.lastFreeScan ?? null)}
+              {clock(status?.lastFreeScan ?? null)} · Epic{' '}
+              {clock(status?.lastEpicScan ?? null)}
             </div>
           )}
           {scanning ? (
@@ -189,17 +230,23 @@ export default function App(): React.JSX.Element {
             watched={watched}
             onToggleWatch={toggleWatch}
             onOpen={setSelected}
-            onGoTo={(t: Tier) => setPage(t)}
+            onGoTo={(s: Store, t: Tier) => {
+              setStore(s)
+              setPage(t)
+            }}
+            onGoToEpic={() => pickStore('epic')}
             lowThreshold={low}
             highThreshold={high}
             refreshKey={refreshKey}
           />
         )}
+        {page === 'epic' && <EpicView refreshKey={refreshKey} />}
         {page === 'free' && (
           <DealsView
+            store={store}
             tier="free"
-            title="Free right now"
-            hint="No game is at -100% at the moment. I check every few minutes."
+            title={`Free right now on ${label}`}
+            hint={`Nothing is at -100% on ${label} at the moment. I check every few minutes.`}
             watched={watched}
             onToggleWatch={toggleWatch}
             onOpen={setSelected}
@@ -208,8 +255,9 @@ export default function App(): React.JSX.Element {
         )}
         {page === 'under5' && (
           <DealsView
+            store={store}
             tier="under5"
-            title={`Under ${low}`}
+            title={`Under ${low} on ${label}`}
             hint="No deal under the threshold. Scan, or lower the discount filter."
             watched={watched}
             onToggleWatch={toggleWatch}
@@ -219,8 +267,9 @@ export default function App(): React.JSX.Element {
         )}
         {page === 'under10' && (
           <DealsView
+            store={store}
             tier="under10"
-            title={`Under ${high}`}
+            title={`Under ${high} on ${label}`}
             hint="Nothing in the band between the two thresholds."
             watched={watched}
             onToggleWatch={toggleWatch}
@@ -230,8 +279,9 @@ export default function App(): React.JSX.Element {
         )}
         {page === 'top' && (
           <DealsView
+            store={store}
             tier={null}
-            title="Top discounts"
+            title={`Top discounts on ${label}`}
             hint="The catalog is empty — start a scan."
             watched={watched}
             onToggleWatch={toggleWatch}

@@ -1,4 +1,5 @@
 import type { Deal } from '@shared/types'
+import { STORE_LABEL } from '@shared/types'
 import { count, endsIn, reviewLabel, reviewTone } from '../format'
 
 interface Props {
@@ -19,9 +20,14 @@ export default function DealRow({
   aside
 }: Props): React.JSX.Element {
   const free = deal.priceFinal <= 0
-  // butonul principal duce in clientul Steam, nu in browser; daca jocul n-are
-  // appid (pachete, bundle-uri), procesul principal cade pe pagina din browser
-  const openSteam = (): void => void window.api.openInSteam(deal.appid, deal.url)
+  // la Steam butonul duce in client, nu in browser; daca jocul n-are appid
+  // (pachete, bundle-uri), procesul principal cade pe pagina din browser.
+  // GOG n-are protocol propriu inregistrat de Galaxy pentru pagina magazinului,
+  // deci acolo deschid direct pagina web.
+  const openStore = (): void => {
+    if (deal.store === 'steam') void window.api.openInSteam(deal.appid, deal.url)
+    else void window.api.openExternal(deal.url)
+  }
 
   return (
     <div className={`deal${free ? ' is-free' : ''}`}>
@@ -70,8 +76,11 @@ export default function DealRow({
         <button className="ghost" title="Price history" onClick={() => onOpen(deal)}>
           ▤
         </button>
-        <button onClick={openSteam} title="Open in the Steam client">
-          Steam
+        <button
+          onClick={openStore}
+          title={deal.store === 'steam' ? 'Open in the Steam client' : 'Open the store page'}
+        >
+          {STORE_LABEL[deal.store]}
         </button>
       </div>
     </div>
