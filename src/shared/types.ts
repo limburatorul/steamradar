@@ -49,6 +49,11 @@ export interface Deal {
   reviewPct: number | null
   reviewCount: number | null
   platforms: { win: boolean; mac: boolean; linux: boolean }
+  /**
+   * Steam il pune pe raftul Adult Only (descriptorul de continut 4). Ascuns din
+   * liste, cifre si alerte, daca `showAdult` nu e bifat. GOG nu da informatia.
+   */
+  adult?: boolean
 }
 
 /** Momentul in care un joc a intrat intr-un prag. Din astea se face istoricul. */
@@ -142,6 +147,8 @@ export interface AppConfig {
   glassStyle: GlassStyle
   /** Fundalul rotativ construit din capsulele ofertelor. */
   backdrop: boolean
+  /** Arata jocurile de pe raftul Adult Only al Steam. Implicit ascunse. */
+  showAdult: boolean
 }
 
 export interface EpicNotify {

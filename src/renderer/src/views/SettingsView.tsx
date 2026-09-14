@@ -94,6 +94,15 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
               />
               <span className="note">there are twice as many discounted DLCs as games</span>
             </div>
+            <div className="row">
+              <label className="k">Show adult games</label>
+              <input
+                type="checkbox"
+                checked={config.showAdult}
+                onChange={(e) => onChange({ showAdult: e.target.checked })}
+              />
+              <span className="note">games on Steam&apos;s Adult Only shelf; off hides them from lists, counts and alerts</span>
+            </div>
           </div>
 
           <div className="card">

@@ -133,6 +133,10 @@ export async function scanFree(): Promise<DealEvent[]> {
     const seeded = cat.updatedAt !== null
     const previous = new Map(cat.deals.map((d) => [d.key, d]))
 
+    // cautarea veche nu stie descriptorii de continut; ii iau din catalog, unde
+    // jocul a intrat deja prin interogarea noua a scanarii complete
+    for (const d of fresh) d.adult = previous.get(d.key)?.adult
+
     // catalogul pastreaza restul ofertelor neatinse; inlocuiesc doar zona "gratis"
     const merged = cat.deals.filter((d) => d.priceFinal > 0)
     merged.push(...fresh)
@@ -412,6 +416,8 @@ function diff(deals: Deal[], previous: Map<string, Deal>, cfg: AppConfig): DealE
   for (const d of deals) {
     const now = tierOf(d.priceFinal, cfg)
     if (!now) continue
+    // un joc ascuns din liste nu trimite nici alerta, nici intrare in istoric
+    if (d.adult && !cfg.showAdult) continue
 
     const before = previous.get(d.key)
     const was = before ? tierOf(before.priceFinal, cfg) : null

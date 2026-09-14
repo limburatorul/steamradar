@@ -3,6 +3,21 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.4.1] — 2026-09-14
+
+### Adăugat
+
+- **Jocurile pentru adulți sunt ascunse implicit.** Cele mai ieftine liste Steam
+  începeau cu ele — zeci de „puzzle-uri hentai” la 0,49 €. Filtrul folosește
+  marcajul Adult Only pe care Steam îl pune el însuși pe joc (descriptorul de
+  conținut 4), nu un cuvânt din titlu, iar interogarea îl aducea deja: nu costă
+  nicio cerere în plus. Jocurile marcate dispar din liste, din cifrele de pe
+  Radar și din alerte; cele puse de mână în lista de urmărire rămân. Se pot
+  arăta din Settings → Thresholds → „Show adult games”.
+- Marcajul se citește la prima scanare completă după actualizare (cel mult o
+  oră, sau imediat cu Scan now). GOG nu dă informația, deci filtrul e doar pentru
+  Steam.
+
 ## [0.4.0] — 2026-08-23
 
 ### Adăugat

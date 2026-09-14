@@ -33,7 +33,8 @@ const DEFAULTS: AppConfig = {
   updateCheckMin: 45,
   openInSteamClient: true,
   glassStyle: 'glass',
-  backdrop: true
+  backdrop: true,
+  showAdult: false
 }
 
 let cached: AppConfig | null = null

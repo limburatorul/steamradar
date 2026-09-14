@@ -59,7 +59,10 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('deals:query', async (_e, q: DealQuery): Promise<DealQueryResult> => {
     const cfg = await loadConfig()
     const cat = await getCatalog()
-    const all = applyQuery(cat.deals, q, [cfg.thresholdLow, cfg.thresholdHigh])
+    // jocurile Adult Only raman in catalog (altfel bifarea lor ar parea, la scanarea
+    // urmatoare, mii de intrari noi in praguri); doar nu ies de aici
+    const deals = cfg.showAdult ? cat.deals : cat.deals.filter((d) => !d.adult)
+    const all = applyQuery(deals, q, [cfg.thresholdLow, cfg.thresholdHigh])
     const offset = q.offset ?? 0
     const limit = q.limit ?? 100
     return {
@@ -89,6 +92,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
     const steam: StoreStats = { tracked: 0, free: 0, under5: 0, under10: 0 }
     const gog: StoreStats = { tracked: 0, free: 0, under5: 0, under10: 0 }
     for (const d of cat.deals) {
+      if (d.adult && !cfg.showAdult) continue
       const bucket = d.store === 'gog' ? gog : steam
       bucket.tracked++
       const tier = tierOf(d.priceFinal, cfg)

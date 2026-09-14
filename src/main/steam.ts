@@ -59,6 +59,8 @@ interface StoreItem {
   assets?: { asset_url_format?: string; small_capsule?: string }
   release?: { steam_release_date?: number }
   platforms?: { windows?: boolean; mac?: boolean; steamos_linux?: boolean }
+  /** Vine cu `include_basic_info`; lipseste la jocurile fara niciun descriptor. */
+  content_descriptorids?: number[]
   reviews?: {
     summary_filtered?: {
       review_count?: number
@@ -78,6 +80,14 @@ interface QueryResponse {
 /** `type` din raspuns: 0 joc, 4 DLC, restul (software, video, hardware) le ignor. */
 const TYPE_GAME = 0
 const TYPE_DLC = 4
+
+/**
+ * Singurul descriptor de continut care inseamna "joc pentru adulti". Masurat in
+ * Shelf pe pagini reale: 5 (nuditate sau continut sexual frecvent) e si pe The
+ * Witcher 3, deci ar ascunde jocuri obisnuite; 4 e raftul Adult Only, pe care un
+ * cont trebuie sa-l activeze ca magazinul sa arate macar pagina.
+ */
+const ADULT_ONLY_DESCRIPTOR = 4
 
 export interface QueryParams {
   countryCode: string
@@ -177,7 +187,8 @@ function toDeal(item: StoreItem): Deal | null {
       win: item.platforms?.windows === true,
       mac: item.platforms?.mac === true,
       linux: item.platforms?.steamos_linux === true
-    }
+    },
+    adult: item.content_descriptorids?.includes(ADULT_ONLY_DESCRIPTOR) === true
   }
 }
 
