@@ -1,5 +1,7 @@
 # SteamRadar
 
+**Descărcare și detalii:** [protagonistlabs.app/steamradar](https://protagonistlabs.app/steamradar/)
+
 Aplicație Electron care urmărește reducerile de pe **Steam**, **GOG** și jocurile
 gratuite de pe **Epic**, și te anunță când un joc intră într-un prag de preț.
 Pragul care contează cel mai mult e **gratis** — jocurile puse la -100%, adică
