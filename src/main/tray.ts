@@ -1,7 +1,7 @@
 import { app, Menu, nativeImage, Tray } from 'electron'
 import { ICON_TRAY } from './icon'
 import { isScanning, scanFree, scanFull, tierOf } from './scanner'
-import { getCatalog, getEpic } from './store'
+import { getCatalog, getEpicLive } from './store'
 import { loadConfig } from './config'
 
 /**
@@ -35,8 +35,7 @@ export async function refreshTray(showWindow: () => void): Promise<void> {
   if (!tray) return
   const cfg = await loadConfig()
   const cat = await getCatalog()
-  const epic = await getEpic()
-  const epicFree = epic.games.filter((g) => g.current).length
+  const epicFree = (await getEpicLive()).filter((g) => g.current).length
 
   let free = 0
   let under5 = 0

@@ -18,6 +18,18 @@ versionarea e [SemVer](https://semver.org/lang/ro/).
   oră, sau imediat cu Scan now). GOG nu dă informația, deci filtrul e doar pentru
   Steam.
 
+### Reparat
+
+- **Cartelele Epic nu mai arată ca gratuite jocuri a căror ofertă a expirat.**
+  Starea „gratis acum” și ferestrele se scriau la scanare și se afișau ca atare,
+  deci după ce trecea data de sfârșit cartela rămânea „Claim on Epic” până la
+  următoarea scanare reușită. Acum se evaluează față de ceasul de acum: ofertele
+  expirate dispar, iar una anunțată devine „gratis” exact la ora de început.
+  Același lucru pentru cifrele din bara laterală, de pe Radar și din tooltip-ul
+  din tray.
+- Textul „Free for another a moment” (ultima jumătate de oră) e acum „Free for
+  another moment”.
+
 ## [0.4.0] — 2026-08-23
 
 ### Adăugat

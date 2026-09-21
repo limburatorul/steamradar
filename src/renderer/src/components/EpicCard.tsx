@@ -8,6 +8,7 @@ import { countdown, dateTime } from '../format'
  */
 export default function EpicCard({ game }: { game: EpicFreeGame }): React.JSX.Element {
   const open = (): void => void window.api.openExternal(game.url)
+  const left = countdown(game.endsAt)
 
   return (
     <div className={`epic-card${game.current ? ' is-free' : ''}`}>
@@ -27,7 +28,7 @@ export default function EpicCard({ game }: { game: EpicFreeGame }): React.JSX.El
         </div>
         <div className={`epic-when${game.current ? ' now' : ''}`}>
           {game.current
-            ? `Free for another ${countdown(game.endsAt)}`
+            ? `Free for another ${left === 'a moment' ? 'moment' : left}`
             : `Free in ${countdown(game.startsAt)}`}
         </div>
         <div className="epic-window">

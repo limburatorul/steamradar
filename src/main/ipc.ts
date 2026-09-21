@@ -27,6 +27,7 @@ import {
   clearEvents,
   getCatalog,
   getEpic,
+  getEpicLive,
   getEvents,
   getWatchlist,
   markEventsSeen,
@@ -83,7 +84,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('deals:stats', async (): Promise<StatsSummary> => {
     const cfg = await loadConfig()
     const cat = await getCatalog()
-    const epic = await getEpic()
+    const epic = { games: await getEpicLive() }
     const events = await getEvents()
     const since = new Date(Date.now() - 24 * 3600_000).toISOString()
 
@@ -113,7 +114,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
 
   ipcMain.handle('epic:list', async () => {
     const epic = await getEpic()
-    return { updatedAt: epic.updatedAt, games: epic.games }
+    return { updatedAt: epic.updatedAt, games: await getEpicLive() }
   })
 
   ipcMain.handle('events:list', async (_e, tier?: DealEvent['tier'] | null) => {
