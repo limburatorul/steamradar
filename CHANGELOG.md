@@ -3,6 +3,13 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.4.3] — 2026-09-27
+
+### Schimbat
+
+- **Linkurile Website și More apps din Settings spun site-ului că vin din
+  SteamRadar**, ca vizitele să poată fi numărate pe surse.
+
 ## [0.4.2] — 2026-09-26
 
 ### Adăugat

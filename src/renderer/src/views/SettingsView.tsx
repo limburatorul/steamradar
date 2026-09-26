@@ -408,7 +408,7 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
               <button
                 onClick={() =>
                   void window.api.openExternal(
-                    'https://protagonistlabs.app/steamradar/?utm_source=app&utm_medium=steamradar'
+                    'https://protagonistlabs.app/steamradar/?utm_source=steamradar&utm_medium=app&utm_campaign=settings'
                   )
                 }
               >
@@ -417,7 +417,7 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
               <button
                 onClick={() =>
                   void window.api.openExternal(
-                    'https://protagonistlabs.app/?utm_source=app&utm_medium=steamradar'
+                    'https://protagonistlabs.app/?utm_source=steamradar&utm_medium=app&utm_campaign=more-apps'
                   )
                 }
               >
