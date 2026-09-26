@@ -395,6 +395,36 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
                   : ''}
               </span>
             </div>
+            <div className="row">
+              <button
+                onClick={() =>
+                  void window.api.openExternal(
+                    'mailto:feedback@protagonistlabs.app?subject=SteamRadar%20feedback'
+                  )
+                }
+              >
+                Send feedback
+              </button>
+              <button
+                onClick={() =>
+                  void window.api.openExternal(
+                    'https://protagonistlabs.app/steamradar/?utm_source=app&utm_medium=steamradar'
+                  )
+                }
+              >
+                Website
+              </button>
+              <button
+                onClick={() =>
+                  void window.api.openExternal(
+                    'https://protagonistlabs.app/?utm_source=app&utm_medium=steamradar'
+                  )
+                }
+              >
+                More apps from Protagonist Labs
+              </button>
+              <span className="note">feedback@protagonistlabs.app</span>
+            </div>
           </div>
 
           <div className="card">

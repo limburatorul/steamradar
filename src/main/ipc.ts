@@ -153,7 +153,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
 
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('shell:open-external', async (_e, url: string) => {
-    if (!/^https?:\/\//i.test(url)) return false
+    if (!/^https?:\/\//i.test(url) && !url.startsWith('mailto:feedback@protagonistlabs.app?')) return false
     await shell.openExternal(url)
     return true
   })

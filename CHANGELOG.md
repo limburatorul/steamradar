@@ -3,6 +3,14 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.4.2] — 2026-09-26
+
+### Adăugat
+
+- **Send feedback și Website în Settings → Updates.** „Send feedback” deschide
+  un mail către feedback@protagonistlabs.app, „Website” pagina SteamRadar, iar
+  „More apps from Protagonist Labs” celelalte aplicații.
+
 ## [0.4.1] — 2026-09-14
 
 ### Adăugat
