@@ -1,214 +1,216 @@
 # SteamRadar
 
-**Descărcare și detalii:** [protagonistlabs.app/steamradar](https://protagonistlabs.app/steamradar/)
+**Download and details:** [protagonistlabs.app/steamradar](https://protagonistlabs.app/steamradar/)
 
-Aplicație Electron care urmărește reducerile de pe **Steam**, **GOG** și jocurile
-gratuite de pe **Epic**, și te anunță când un joc intră într-un prag de preț.
-Pragul care contează cel mai mult e **gratis** — jocurile puse la -100%, adică
-cele pe care le adaugi definitiv în bibliotecă dacă prinzi promoția. Următoarele
-praguri sunt **sub 5** și **sub 10** (implicit euro).
+An Electron app that watches the discounts on **Steam** and **GOG** and the free
+games on **Epic**, and tells you when a game drops into a price tier.
+The tier that matters most is **free**: games put at -100%, the ones you keep in
+your library for good if you catch the promotion. The next tiers are **under 5**
+and **under 10** (euros by default).
 
-Interfața are trei secțiuni, comutate din bara laterală. Steam și GOG merg pe
-același mecanism — catalog, praguri, istoric de preț, listă de urmărire — fiindcă
-amândouă dau prețuri. Epic n-are prețuri de citit (vezi mai jos), deci secțiunea
-lui arată doar jocurile date gratis: cele revendicabile acum și cele anunțate
-pentru săptămânile următoare, cu poză, nume și datele exacte.
+The interface has three sections, switched from the sidebar. Steam and GOG run on
+the same mechanism (catalogue, tiers, price history, watchlist) because both give
+prices. Epic has no prices to read (see below), so its section shows only the
+games given away: the ones you can claim now and the ones announced for the
+coming weeks, with picture, name and exact dates.
 
-Rulează în tray, verifică singură în fundal, notificări Windows native.
-Interfața e în engleză; comentariile din cod și notele astea rămân în română.
+It runs in the tray, checks on its own in the background, and uses native Windows
+notifications. The interface is in English; the comments in the code are in Romanian.
 
-## Cum ia datele — Steam
+## How it gets the data: Steam
 
-Steam nu are un API oficial de reduceri. Aplicația folosește două surse, fiecare
-pentru ce știe să facă, ambele fără cheie și fără anti-bot:
+Steam has no official discounts API. The app uses two sources, each for what it
+does well, both without a key and without anti-bot measures:
 
-1. **`IStoreQueryService/Query`** — interogarea pe care o folosește magazinul nou.
-   Răspunde anonim, dă **500 de itemi pe cerere** și aduce direct preț în cenți,
-   procent, scor recenzii, dată de lansare și data la care expiră reducerea. Toate
-   jocurile la reducere (~5900 fără DLC) încap în **12 cereri, ~30 de secunde**.
-2. **`search/results` cu `maxprice=free&specials=1`** — o singură cerere care
-   întoarce exact jocurile puse la -100%. Rulează mult mai des decât măturarea
-   completă, fiindcă acolo se pierde cel mai mult dacă afli târziu.
+1. **`IStoreQueryService/Query`**: the query the new store uses. It answers
+   anonymously, gives **500 items per request** and brings the price in cents, the
+   percentage, the review score, the release date and the date the discount ends.
+   Every game on sale (~5,900 without DLC) fits in **12 requests, ~30 seconds**.
+2. **`search/results` with `maxprice=free&specials=1`**: a single request that
+   returns exactly the games put at -100%. It runs far more often than the full
+   sweep, because that is where finding out late costs the most.
 
-Patru lucruri măsurate pe viu, nu presupuse:
+Four things measured live, not assumed:
 
-- **Fără `sort` explicit, interogarea nouă nu e repetabilă.** Două cereri identice
-  n-au niciun element comun, iar paginarea pierdea **1112 jocuri din 5858**.
-  `sort: 1` (alfabetic) aduce exact câte declară `total_matching_records`.
-- **Endpointul vechi limitează la ~20 de cereri**, cu completare de ~0,4/s (token
-  bucket), apoi răspunde 429 și își revine în 15–30 de secunde. Măsurat: la 350 ms
-  cade după 30 de cereri, la 1000 ms după 52. Ambele surse trec prin același
-  mecanism de reîncercare.
-- **`sort_by=Discount_DESC` e acceptat, dar ignorat** — magazinul nu mai are
-  sortare după reducere; întoarce -70%, -85%, -25% amestecat. Topul reducerilor se
-  calculează local.
-- **`min_discount_percent: 100` nu filtrează jocurile gratis**, ci întoarce tot
-  magazinul (240.000 de rezultate). De aceea pragul „gratis" a rămas pe căutarea
-  veche, care îl face exact.
+- **Without an explicit `sort`, the new query is not repeatable.** Two identical
+  requests have no element in common, and paging lost **1,112 games out of 5,858**.
+  `sort: 1` (alphabetical) brings exactly as many as `total_matching_records` declares.
+- **The old endpoint limits you to ~20 requests**, refilling at ~0.4/s (token
+  bucket), then answers 429 and recovers in 15–30 seconds. Measured: at 350 ms it
+  fails after 30 requests, at 1000 ms after 52. Both sources go through the same
+  retry mechanism.
+- **`sort_by=Discount_DESC` is accepted, but ignored**: the store no longer sorts
+  by discount, and returns -70%, -85%, -25% mixed together. The top discounts are
+  computed locally.
+- **`min_discount_percent: 100` does not filter the free games**; it returns the
+  whole store (240,000 results). That is why the "free" tier stayed on the old
+  search, which does it exactly.
 
-Interogarea se face mereu cu `l=english`, ca tiparul recenziilor să fie același
-indiferent de țară; prețul vine tot în moneda locală, fiindcă de monedă răspunde
-`cc`, nu limba.
+The query always runs with `l=english`, so the review pattern is the same whatever
+the country; the price still comes in the local currency, because the currency
+follows `cc`, not the language.
 
-## Cum ia datele — GOG
+## How it gets the data: GOG
 
-O singură sursă: `catalog.gog.com/v1/catalog`, catalogul pe care îl folosește
-chiar magazinul lor. Răspunde anonim, în JSON, cu prețul deja formatat și
-procentul. Ofertele intră în **același catalog** ca cele de pe Steam și trec prin
-aceleași praguri, același istoric de preț și aceeași listă de urmărire — se
-deosebesc prin câmpul `store` și prin prefixul cheii (`Gog_`).
+A single source: `catalog.gog.com/v1/catalog`, the catalogue their own store
+uses. It answers anonymously, in JSON, with the price already formatted and the
+percentage. The offers go into the **same catalogue** as the Steam ones and pass
+through the same tiers, the same price history and the same watchlist; they
+differ by the `store` field and by the key prefix (`Gog_`).
 
-Patru lucruri măsurate pe viu:
+Four things measured live:
 
-- **GOG ignoră `countryCode` când alege moneda.** Fără `currencyCode` explicit,
-  RO primește prețuri în **USD**, deși Steam dă EUR pentru aceeași țară. Cum
-  ambele magazine ajung în același catalog, două monede amestecate ar strica și
-  pragurile, și alertele. De aceea moneda se deduce din țară, cu un tabel scurt
-  în `src/main/gog.ts`, iar `npm run probe` verifică explicit că Steam și GOG
-  răspund în aceeași monedă.
-- **Maximul e 100 de itemi pe cerere** — la 200 răspunde 400. Tot ce e la
-  reducere (~3700 cu pachete) încape în **38 de cereri**.
-- **Paginarea e repetabilă cu `order=desc:title`**: aceeași pagină cerută de două
-  ori a întors aceleași 100 de jocuri (spre deosebire de Steam fără sortare).
-- **Coperta implicită e un PNG de 1,4 MB.** Cu formatorul
-  `_product_tile_extended_432x243.webp` scade la **30 KB**, la aceeași lățime cu
-  rândul din listă.
+- **GOG ignores `countryCode` when it picks the currency.** Without an explicit
+  `currencyCode`, RO gets prices in **USD**, although Steam gives EUR for the same
+  country. Since both stores end up in the same catalogue, two mixed currencies
+  would break both the tiers and the alerts. So the currency is derived from the
+  country, with a short table in `src/main/gog.ts`, and `npm run probe` checks
+  explicitly that Steam and GOG answer in the same currency.
+- **The maximum is 100 items per request**: at 200 it answers 400. Everything on
+  sale (~3,700 with bundles) fits in **38 requests**.
+- **Paging is repeatable with `order=desc:title`**: the same page requested twice
+  returned the same 100 games (unlike Steam without a sort).
+- **The default cover is a 1.4 MB PNG.** With the formatter
+  `_product_tile_extended_432x243.webp` it drops to **30 KB**, at the same width as
+  the row in the list.
 
-Giveaway-ul GOG (`giveaway/api/getGiveawayDetails`) e verificat la fiecare
-scanare rapidă, dar răspunde 404 aproape tot timpul — GOG dă un joc gratis de
-câteva ori pe an, nu săptămânal. 404 înseamnă „niciunul acum", nu eroare.
+The GOG giveaway (`giveaway/api/getGiveawayDetails`) is checked at every quick
+scan, but answers 404 almost all the time: GOG gives a game away a few times a
+year, not weekly. 404 means "none right now", not an error.
 
-## Cum ia datele — Epic
+## How it gets the data: Epic
 
-**Reducerile Epic nu se pot citi.** GraphQL-ul magazinului
-(`store.epicgames.com/graphql`) răspunde **403 cu provocare Cloudflare** și pe
-POST, și pe GET, cu antete normale de browser. Nu există ocolire care să nu fie
-evitare de detecție de boți, iar o sursă ținută cu artificii s-ar strica la prima
-schimbare de la ei. De aceea secțiunea Epic are numai jocuri gratuite.
+**Epic's discounts cannot be read.** The store's GraphQL
+(`store.epicgames.com/graphql`) answers **403 with a Cloudflare challenge** on both
+POST and GET, with normal browser headers. There is no way around it that is not
+bot-detection evasion, and a source kept alive with tricks would break at their
+first change. That is why the Epic section has free games only.
 
-Sursa lor, `store-site-backend-static.ak.epicgames.com/freeGamesPromotions`, e pe
-hostul static Akamai, în afara Cloudflare: o singură cerere anonimă, ~1 secundă,
-și întoarce deodată și ce e gratis acum, și ce a anunțat Epic pentru săptămânile
-următoare, cu datele exacte de început și de sfârșit.
+Their source, `store-site-backend-static.ak.epicgames.com/freeGamesPromotions`, is
+on the static Akamai host, outside Cloudflare: a single anonymous request, ~1
+second, and it returns at once both what is free now and what Epic has announced
+for the coming weeks, with the exact start and end dates.
 
-Două lucruri măsurate:
+Two things measured:
 
-- **Lista conține și promoții care nu sunt gratuite.** În aceeași cerere au venit
-  oferte anunțate la -20%, -25%, -40% și -50%. Singurul semn că un joc chiar e
-  gratis e `discountPercentage === 0` — cât rămâne de plătit din prețul de listă,
-  nu reducerea. Fără filtrul ăsta, secțiunea ar anunța ca „gratis" jocuri care
-  costă.
-- **Prețul de listă vine în moneda Epic a țării** (RON pentru RO), nu în cea a
-  catalogului Steam/GOG. Nu se amestecă nicăieri, fiindcă la Epic nu există prag
-  de preț — e doar textul „normally RON 116.99" de pe cartelă.
+- **The list also contains promotions that are not free.** The same request
+  brought offers announced at -20%, -25%, -40% and -50%. The only sign that a game
+  really is free is `discountPercentage === 0`: how much is left to pay of the list
+  price, not the discount. Without that filter, the section would announce as
+  "free" games that cost money.
+- **The list price comes in Epic's currency for the country** (RON for RO), not in
+  that of the Steam/GOG catalogue. It is not mixed in anywhere, because Epic has no
+  price tier: it is only the "normally RON 116.99" text on the card.
 
-## Alertele
+## Alerts
 
-La prima pornire aplicația doar construiește referința — n-are cu ce compara, deci
-nu notifică nimic. De la a doua scanare încolo, un joc generează alertă doar când
-**coboară** într-un prag mai bun decât cel în care era, nu cât timp stă acolo.
+On the first start the app only builds its reference: it has nothing to compare
+with, so it notifies nothing. From the second scan on, a game raises an alert only
+when it **drops** into a better tier than the one it was in, not for as long as it
+stays there.
 
-Windows nu afișează o coadă nesfârșită de notificări: când vin multe deodată, le
-aruncă pe cele din spate. Într-o scanare intră zeci de jocuri sub 5, iar în timpul
-soldurilor mari câteva sute. De aceea modul implicit e **grupat** — o notificare pe
-prag, cu numărul și primele nume — și există **individual** în setări. Jocurile
-devenite gratis primesc notificare proprie în ambele moduri.
+Windows does not show an endless queue of notifications: when many arrive at once,
+it drops the ones at the back. One scan brings dozens of games under 5, and during
+the big sales a few hundred. So the default mode is **grouped** (one notification
+per tier, with the count and the first names) and there is **individual** in the
+settings. Games that became free get their own notification in both modes.
 
-Lista de urmărire e singurul loc care alertează și la scăderi care nu ating niciun
-prag: pui steaua pe un joc de 40 și afli când ajunge la 24. Opțional cu preț țintă.
+The watchlist is the only place that also alerts on drops that reach no tier: you
+star a game at 40 and find out when it gets to 24. Optionally with a target price.
 
-Reducerile GOG trec prin aceleași praguri ca cele de pe Steam; în Settings se
-poate opri doar notificarea lor, nu și urmărirea. Epic are trei anunțuri
-separate, fiecare pornit sau oprit din Settings: **un joc a devenit
-revendicabil**, **Epic a anunțat ce urmează** și **mai e o zi până expiră**.
-Fiecare pleacă o singură dată pe joc, iar la prima verificare aplicația doar
-construiește referința — altfel, la prima pornire ai primi deodată și jocurile
-anunțate pentru peste o lună. Reminderul de expirare pleacă indiferent dacă ai
-revendicat deja jocul: asta se vede doar în contul tău Epic, pe care aplicația
-nu-l cere și nu-l atinge.
+GOG discounts pass through the same tiers as the Steam ones; in Settings you can
+switch off only their notification, not the tracking. Epic has three separate
+announcements, each switched on or off in Settings: **a game became claimable**,
+**Epic announced what is next** and **one day left before it expires**.
+Each goes out once per game, and on the first check the app only builds its
+reference; otherwise, on the first start you would get at once the games announced
+for a month from now as well. The expiry reminder goes out whether or not you have
+already claimed the game: that can be seen only in your Epic account, which the
+app neither asks for nor touches.
 
-## Istoricul de preț
+## Price history
 
-Fiecare joc care ajunge într-un prag — sau pe care îl urmărești — capătă un
-grafic al evoluției prețului, în fereastra care se deschide la clic pe nume.
-Graficul e în **trepte**, fiindcă un preț chiar așa se mișcă: stă, apoi sare.
-O linie oblică între două puncte ar desena prețuri care n-au existat.
+Every game that reaches a tier, or that you watch, gets a chart of its price over
+time, in the window that opens when you click its name. The chart is **stepped**,
+because that is how a price really moves: it stays, then it jumps. A slanted line
+between two points would draw prices that never existed.
 
-Ce nu se ține: istoricul tuturor celor ~5900 de oferte. Ar însemna sute de mii
-de puncte pe zi pentru jocuri la care nu se uită nimeni. Un joc intrat o dată
-rămâne urmărit, ca să se vadă ciclul întreg — reducere, revenire la prețul de
-listă, reducere mai bună — și primește un punct doar când prețul chiar se
-schimbă.
+What is not kept: the history of all ~5,900 offers. That would mean hundreds of
+thousands of points a day for games nobody looks at. A game that came in once
+stays tracked, so the whole cycle can be seen (discount, return to list price,
+better discount), and it gets a point only when the price really changes.
 
-## Tema
+## The theme
 
-Portată din Game Browser, cu aceeași rețetă: paleta, cele trei stiluri de
-sticlă și granulația. Blur-ul e o **scală**, nu o înlocuire, iar ce separă de
-fapt acrylic-ul de un blur mai gros e saltul de saturație plus granulația — fără
-zgomot arată doar ca un blur mai mare. Verificat prin control, nu setând
-atributul de mână: glass `blur(16px) saturate(1.2)` fără granulație, acrylic
-`blur(33.6px) saturate(2) brightness(1.05)` cu, frosted
-`blur(48px) saturate(1.1) brightness(1.16)` cu.
+Ported from Game Browser, with the same recipe: the palette, the three glass
+styles and the grain. The blur is a **scale**, not a replacement, and what really
+separates acrylic from a thicker blur is the jump in saturation plus the grain;
+without noise it just looks like a bigger blur. Verified through the control, not
+by setting the attribute by hand: glass `blur(16px) saturate(1.2)` without grain,
+acrylic `blur(33.6px) saturate(2) brightness(1.05)` with it, frosted
+`blur(48px) saturate(1.1) brightness(1.16)` with it.
 
-Fundalul rotativ e construit din capsulele celor mai bine cotate oferte. Nu e
-decorativ: fără el, sticla n-are ce estompa și toate trei stilurile arată la fel.
+The rotating background is built from the capsules of the best-rated offers. It is
+not decoration: without it the glass has nothing to blur and all three styles look
+the same.
 
-## Numele din notificări
+## The name in notifications
 
-Windows nu ia numele din titlul ferestrei și nici din `productName`. Toast-ul
-afișează numele scurtăturii din Start Menu a cărei AppUserModelID se potrivește
-cu cea declarată de proces — fără ea scrie „electron.app.Electron" sau nu apare
-deloc. De aceea aplicația își scrie singură o scurtătură în Start Menu la prima
-pornire (`src/main/shortcut.ts`), țintind `.exe`-ul portabil real, nu copia din
-`%TEMP%`. În dezvoltare nu are ce ținti, deci acolo numele rămâne cel al
-Electron-ului; Settings spune asta explicit.
+Windows does not take the name from the window title, nor from `productName`. The
+toast shows the name of the Start Menu shortcut whose AppUserModelID matches the
+one the process declares; without it, it says "electron.app.Electron" or does not
+appear at all. So the app writes itself a Start Menu shortcut on first start
+(`src/main/shortcut.ts`), targeting the real portable `.exe`, not the copy in
+`%TEMP%`. In development there is nothing to target, so there the name stays
+Electron's; Settings says so explicitly.
 
-## Auto-actualizare
+## Auto-update
 
-Doar pe varianta portabilă, după tiparul rodat în Game Browser: verifică
-`https://api.github.com/repos/limburatorul/steamradar/releases/latest` la 8
-secunde după pornire (tăcut dacă nu e nimic nou), descarcă `.exe`-ul în
-`PORTABLE_EXECUTABLE_DIR`, verifică mărimea față de cea anunțată de GitHub,
-pornește noul proces detașat și închide procesul curent. Ștergerea versiunilor
-vechi o face pornirea următoare, cu reîncercări la 5 și 20 de secunde, fiindcă
-procesul înlocuit poate ține încă lock pe fișierul lui.
+On the portable build only, following the pattern proven in Game Browser: it
+checks `https://api.github.com/repos/limburatorul/steamradar/releases/latest` 8
+seconds after start (silently if there is nothing new), downloads the `.exe` into
+`PORTABLE_EXECUTABLE_DIR`, checks the size against the one GitHub announces,
+starts the new process detached and closes the current one. Deleting the old
+versions is done by the next start, with retries at 5 and 20 seconds, because the
+replaced process may still hold a lock on its file.
 
-Două capcane deja plătite în Game Browser, nu le redescoperi:
-`process.execPath` arată spre copia temporară din `%TEMP%`, nu spre exe-ul real;
-și maturarea șterge **orice** exe cu versiune mai mică din același folder,
-inclusiv build-uri de test ținute intenționat acolo.
+Two traps already paid for in Game Browser, not to be rediscovered:
+`process.execPath` points to the temporary copy in `%TEMP%`, not to the real exe;
+and the sweep deletes **any** exe with a lower version in the same folder,
+including test builds kept there on purpose.
 
-Sursa versiunilor e https://github.com/limburatorul/steamradar — fiecare release
-poartă `SteamRadar-<versiune>-portabil.exe`. Pe lângă verificarea de la pornire,
-reverifică din 45 în 45 de minute (configurabil), fiindcă aplicația stă zile
-întregi în tray.
+The source of the versions is https://github.com/limburatorul/steamradar: every
+release carries `SteamRadar-<version>-portabil.exe`. Besides the check at start,
+it checks again every 45 minutes (configurable), because the app sits in the tray
+for days.
 
-## Rulare
+## Running it
 
 ```bash
 npm install
 npm run dev
 ```
 
-Alte comenzi:
+Other commands:
 
-- `npm run typecheck` — verifică tipurile pe ambele proiecte (main și interfață)
-- `npm run probe` — lovește toate cele trei magazine pe viu și arată dacă
-  endpointurile și parserele mai merg, inclusiv dacă Steam și GOG răspund în
-  aceeași monedă. De rulat primul când aplicația nu mai găsește nimic: sursa se
-  strică mai des decât codul.
-- `npm run dist` — construiește `release/SteamRadar-<ver>-portabil.exe`
-- `node scripts/make-icons.mjs` — regenerează iconițele (desenate din cod)
+- `npm run typecheck`: checks the types in both projects (main and interface)
+- `npm run probe`: hits all three stores live and shows whether the endpoints and
+  the parsers still work, including whether Steam and GOG answer in the same
+  currency. Run it first when the app stops finding anything: the source breaks
+  more often than the code.
+- `npm run dist`: builds `release/SteamRadar-<ver>-portabil.exe`
+- `node scripts/make-icons.mjs`: regenerates the icons (drawn from code)
 
-## Unde stau datele
+## Where the data lives
 
-În varianta portabilă, în `SteamRadar-Date/` lângă executabil, ca aplicația să
-poată fi mutată pe stick cu tot cu istoric. Altfel în `%APPDATA%/steamradar`.
+In the portable build, in `SteamRadar-Date/` next to the executable, so the app
+can be moved to a USB stick together with its history. Otherwise in
+`%APPDATA%/steamradar`.
 
-- `config.json` — praguri, intervale, notificări, aspect
-- `history.json` — evoluția prețului pentru jocurile ajunse în praguri
-- `catalog.json` — ofertele de acum, Steam și GOG laolaltă; e și fotografia față
-  de care se compară
-- `epic.json` — jocurile gratuite de pe Epic și ce anunțuri s-au dat deja
-- `events.json` — istoricul intrărilor în praguri (ultimele 3000)
-- `watchlist.json` — jocurile urmărite
+- `config.json`: tiers, intervals, notifications, appearance
+- `history.json`: the price over time for the games that reached the tiers
+- `catalog.json`: the offers right now, Steam and GOG together; it is also the
+  snapshot everything is compared against
+- `epic.json`: the free games on Epic and which announcements have already gone out
+- `events.json`: the history of entries into the tiers (the last 3,000)
+- `watchlist.json`: the games you watch
