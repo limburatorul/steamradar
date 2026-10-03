@@ -214,3 +214,8 @@ can be moved to a USB stick together with its history. Otherwise in
 - `epic.json`: the free games on Epic and which announcements have already gone out
 - `events.json`: the history of entries into the tiers (the last 3,000)
 - `watchlist.json`: the games you watch
+
+## More from Protagonist Labs
+
+- [Shelf](https://protagonistlabs.app/shelf/?utm_source=github&utm_medium=readme&utm_campaign=steamradar): every PC game from every launcher in one library.
+- [All apps](https://protagonistlabs.app/?utm_source=github&utm_medium=readme&utm_campaign=steamradar): Windows apps that each do one job properly.
