@@ -19,9 +19,9 @@ import {
   onStatus,
   scanFree,
   scanFull,
-  schedule,
-  tierOf
+  schedule
 } from './scanner'
+import { tierOf } from './diff'
 import {
   addWatch,
   clearEvents,

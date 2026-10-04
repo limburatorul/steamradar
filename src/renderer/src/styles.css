@@ -454,6 +454,14 @@ input[type='checkbox'] {
   font-size: 12px;
 }
 
+.toolbar .filters {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .toolbar .spacer {
   flex: 1;
 }

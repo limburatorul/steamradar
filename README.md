@@ -17,6 +17,15 @@ coming weeks, with picture, name and exact dates.
 It runs in the tray, checks on its own in the background, and uses native Windows
 notifications. The interface is in English; the comments in the code are in Romanian.
 
+![Radar](docs/screenshots/01-radar.png)
+
+| | |
+|---|---|
+| ![Steam, under 5](docs/screenshots/02-steam-under5.png) | ![Epic free games](docs/screenshots/03-epic-free.png) |
+| ![GOG, under 10](docs/screenshots/04-gog-under10.png) | ![Alert history](docs/screenshots/05-alert-history.png) |
+
+*Screenshots are taken from a real scan, not mocked up; see `npm run screenshots`.*
+
 ## How it gets the data: Steam
 
 Steam has no official discounts API. The app uses two sources, each for what it
@@ -194,6 +203,8 @@ npm run dev
 Other commands:
 
 - `npm run typecheck`: checks the types in both projects (main and interface)
+- `npm test`: unit tests for the pieces that have broken before (tiers, alert diff, filters, Epic windows); needs Node 24, no extra dependencies
+- `npm run screenshots`: renders the real interface from your own data folder with Chrome headless and writes `docs/screenshots/` (run `npm run build` first)
 - `npm run probe`: hits all three stores live and shows whether the endpoints and
   the parsers still work, including whether Steam and GOG answer in the same
   currency. Run it first when the app stops finding anything: the source breaks

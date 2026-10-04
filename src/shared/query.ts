@@ -2,6 +2,8 @@ import type { Deal, Store, Tier } from './types'
 
 export type SortKey = 'discount' | 'price' | 'priceDesc' | 'reviews' | 'reviewPct' | 'name'
 
+export type Platform = 'win' | 'mac' | 'linux'
+
 export interface DealQuery {
   /** Gol = toate magazinele. Steam si GOG stau in acelasi catalog. */
   store?: Store | null
@@ -13,6 +15,11 @@ export interface DealQuery {
   minReviews?: number
   /** Ascunde jocurile fara recenzii, care sunt aproape mereu zgomot. */
   reviewedOnly?: boolean
+  /** Cel mult atat, in cea mai mica unitate a monedei (centi). */
+  maxPrice?: number
+  platform?: Platform
+  /** Doar jocuri de sine statatoare: fara DLC, pachete si bundle-uri. */
+  appsOnly?: boolean
   sort?: SortKey
   offset?: number
   limit?: number
@@ -42,6 +49,9 @@ export function applyQuery(deals: Deal[], q: DealQuery, thresholds: [number, num
     if (q.minDiscount && d.discountPct < q.minDiscount) return false
     if (q.reviewedOnly && d.reviewCount == null) return false
     if (q.minReviews && (d.reviewCount ?? 0) < q.minReviews) return false
+    if (q.maxPrice != null && d.priceFinal > q.maxPrice) return false
+    if (q.platform && !d.platforms[q.platform]) return false
+    if (q.appsOnly && d.kind !== 'app') return false
     if (q.minReviewPct && (d.reviewPct ?? 0) < q.minReviewPct) return false
     if (needle && !d.name.toLowerCase().includes(needle)) return false
     return true

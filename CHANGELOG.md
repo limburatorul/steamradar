@@ -3,6 +3,27 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.5.0] — 2026-10-04
+
+### Adăugat
+
+- **Filtre noi în listele de oferte**: scor minim al recenziilor (70/80/90%),
+  număr minim de recenzii, preț maxim (1/2/3 în moneda ta), platformă (Windows,
+  macOS, Linux) și „games only” care scoate DLC-urile, pachetele și bundle-urile.
+  Se combină între ele și se resetează când schimbi secțiunea.
+- **Teste automate** (`npm test`, fără dependențe noi) pentru pragurile de preț,
+  diff-ul care produce alerte, filtrele și ferestrele Epic — exact locurile unde
+  s-au stricat lucruri până acum.
+- **Capturi reale în README**, generate de `npm run screenshots` din datele tale.
+- **Release automat**: împingerea unui tag `vX.Y.Z` construiește exe-ul pe GitHub
+  Actions și publică release-ul cu notele din acest fișier; fiecare push rulează
+  verificarea tipurilor și testele.
+
+### Schimbat
+
+- `tierOf` și `diff` s-au mutat din `scanner.ts` în `diff.ts` iar logica ofertelor Epic în
+  `shared/epic.ts`, ca să poată fi testate fără Electron. Comportament neschimbat.
+
 ## [0.4.3] — 2026-09-27
 
 ### Schimbat

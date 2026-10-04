@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto'
-import type { AppConfig, Deal, DealEvent, EpicFreeGame, ScanStatus, Tier } from '../shared/types'
+import type { AppConfig, Deal, DealEvent, EpicFreeGame, ScanStatus } from '../shared/types'
 import { loadConfig } from './config'
+import { diff } from './diff'
 import { recordScan, startTracking } from './history'
 import { notifyEpic, notifyEvents, notifyWatch } from './notify'
 import { StoreHttpError } from './http'
@@ -37,8 +37,6 @@ import { fetchEpicFreeGames } from './epic'
  * decat maturarea completa, fiindca acolo se pierde cel mai mult daca afli tarziu.
  */
 
-const RANK: Record<Tier, number> = { free: 0, under5: 1, under10: 2 }
-
 let running = false
 let abort: AbortController | null = null
 let fullTimer: NodeJS.Timeout | null = null
@@ -72,13 +70,6 @@ export function onStatus(cb: (s: ScanStatus) => void): () => void {
 function setStatus(patch: Partial<ScanStatus>): void {
   status = { ...status, ...patch }
   for (const cb of listeners) cb(status)
-}
-
-export function tierOf(priceFinal: number, cfg: AppConfig): Tier | null {
-  if (priceFinal <= 0) return 'free'
-  if (priceFinal < cfg.thresholdLow * 100) return 'under5'
-  if (priceFinal < cfg.thresholdHigh * 100) return 'under10'
-  return null
 }
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
@@ -407,52 +398,6 @@ export function isScanning(): boolean {
 }
 
 /* --------------------------------------------------------------- compararea */
-
-/** Ce s-a schimbat fata de fotografia precedenta, tradus in intrari de istoric. */
-function diff(deals: Deal[], previous: Map<string, Deal>, cfg: AppConfig): DealEvent[] {
-  const out: DealEvent[] = []
-  const at = new Date().toISOString()
-
-  for (const d of deals) {
-    const now = tierOf(d.priceFinal, cfg)
-    if (!now) continue
-    // un joc ascuns din liste nu trimite nici alerta, nici intrare in istoric
-    if (d.adult && !cfg.showAdult) continue
-
-    const before = previous.get(d.key)
-    const was = before ? tierOf(before.priceFinal, cfg) : null
-
-    // alertez doar cand jocul coboara intr-un prag mai bun decat cel in care era;
-    // altfel as repeta acelasi joc la fiecare scanare cat timp sta la reducere
-    if (was && RANK[was] <= RANK[now]) continue
-
-    out.push({
-      id: randomUUID(),
-      key: d.key,
-      store: d.store,
-      name: d.name,
-      appid: d.appid,
-      url: d.url,
-      image: d.image,
-      tier: now,
-      priceFinal: d.priceFinal,
-      priceText: d.priceText,
-      priceOriginalText: d.priceOriginalText,
-      discountPct: d.discountPct,
-      reviewSummary: d.reviewSummary,
-      reviewPct: d.reviewPct,
-      reviewCount: d.reviewCount,
-      at,
-      fromTier: was,
-      fromPriceText: before?.priceText ?? null,
-      watched: false,
-      seen: false
-    })
-  }
-
-  // gratis intai, apoi cele mai mari reduceri
-  return out.sort((a, b) => RANK[a.tier] - RANK[b.tier] || b.discountPct - a.discountPct)
-}
 
 /**
  * Salveaza evenimentele, marcheaza cele urmarite si trimite notificarile.

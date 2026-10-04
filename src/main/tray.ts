@@ -1,6 +1,7 @@
 import { app, Menu, nativeImage, Tray } from 'electron'
 import { ICON_TRAY } from './icon'
-import { isScanning, scanFree, scanFull, tierOf } from './scanner'
+import { isScanning, scanFree, scanFull } from './scanner'
+import { tierOf } from './diff'
 import { getCatalog, getEpicLive } from './store'
 import { loadConfig } from './config'
 

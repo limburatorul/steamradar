@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { dataRoot } from './config'
 import type { Deal, DealEvent, EpicFreeGame, WatchItem } from '../shared/types'
+import { liveEpic } from '../shared/epic'
 
 /**
  * Tot ce trebuie sa supravietuiasca inchiderii aplicatiei, in fisiere JSON
@@ -155,18 +156,9 @@ export async function getEpic(): Promise<EpicState> {
   return epic
 }
 
-/**
- * Ofertele Epic evaluate fata de ceasul de acum, nu fata de ultima scanare:
- * `current` si ferestrele sunt scrise la scanare, iar aplicatia sta ore sau zile
- * in tray. Fara asta, o oferta expirata ramane „Claim on Epic" pana la
- * urmatoarea scanare reusita.
- */
+/** Ofertele Epic evaluate fata de ceasul de acum - vezi `liveEpic`. */
 export async function getEpicLive(): Promise<EpicFreeGame[]> {
-  const now = Date.now()
-  return (await getEpic()).games
-    .filter((g) => Date.parse(g.endsAt) > now)
-    .map((g) => ({ ...g, current: Date.parse(g.startsAt) <= now }))
-    .sort((a, b) => Number(b.current) - Number(a.current) || a.startsAt.localeCompare(b.startsAt))
+  return liveEpic((await getEpic()).games, Date.now())
 }
 
 export async function saveEpic(games: EpicFreeGame[]): Promise<void> {

@@ -1,6 +1,6 @@
 {
   "name": "steamradar",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Vaneaza reduceri pe Steam si GOG, plus jocurile gratuite de pe Epic, si alerteaza cand jocurile devin gratis, sub 5 EUR sau sub 10 EUR",
   "main": "out/main/index.js",
   "author": "tucu",
@@ -12,7 +12,9 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "dist": "electron-vite build && electron-builder --win --x64",
-    "probe": "node scripts/probe.mjs"
+    "probe": "node scripts/probe.mjs",
+    "test": "node --test \"test/*.test.ts\"",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
