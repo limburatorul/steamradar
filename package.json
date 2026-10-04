@@ -1,6 +1,6 @@
 {
   "name": "steamradar",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Vaneaza reduceri pe Steam si GOG, plus jocurile gratuite de pe Epic, si alerteaza cand jocurile devin gratis, sub 5 EUR sau sub 10 EUR",
   "main": "out/main/index.js",
   "author": "tucu",
@@ -40,11 +40,23 @@
     ],
     "win": {
       "target": [
+        "nsis",
         "portable"
-      ]
+      ],
+      "icon": "build/icon.ico"
     },
     "portable": {
       "artifactName": "${productName}-${version}-portabil.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SteamRadar",
+      "artifactName": "SteamRadar-${version}-setup.${ext}",
+      "include": "build/installer.nsh"
     }
   }
 }

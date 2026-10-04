@@ -12,7 +12,6 @@ import {
   announceUpdate,
   cleanupOldExecutables,
   onUpdateAvailable,
-  portableDir,
   scheduleUpdateChecks,
   stopUpdateChecks
 } from './updater'
@@ -119,10 +118,9 @@ app.whenReady().then(async () => {
     schedule()
   }
 
-  // verificarea de actualizare e tacuta daca nu exista versiune noua. Doar pe
-  // varianta portabila: altfel ar aparea un banner care ofera o actualizare ce
-  // n-are cum sa se instaleze, fiindca nu exista un exe langa care sa punem altul
-  if (portableDir()) {
+  // verificarea de actualizare e tacuta daca nu exista versiune noua; nu ruleaza
+  // in dezvoltare, unde un banner ar oferi o actualizare fara cum sa se instaleze
+  if (app.isPackaged) {
     setTimeout(() => void announceUpdate(), 8000)
     scheduleUpdateChecks(cfg.updateCheckMin)
   }

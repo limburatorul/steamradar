@@ -3,6 +3,24 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.6.0] — 2026-10-04
+
+### Adăugat
+
+- **Instalator** (`SteamRadar-0.6.0-setup.exe`): instalare per-utilizator, fără
+  drepturi de administrator, cu scurtături în Start Menu și pe desktop.
+- **Auto-actualizare prin instalator**, după modelul din File Labs și Shelf:
+  descarcă instalatorul, îi verifică mărimea și suma SHA-256 publicată de GitHub,
+  închide aplicația, rulează instalatorul silențios peste cea instalată și o
+  pornește la loc (~10 s). Verificarea rulează acum și pe copia instalată, nu doar
+  pe cea portabilă.
+
+### Schimbat
+
+- Varianta portabilă rămâne în release, dar la prima actualizare i se oferă
+  instalatorul (vizibil, o singură dată); datele din `SteamRadar-Date/` se copiază
+  în `%APPDATA%\steamradar`, deci istoricul și setările se păstrează.
+
 ## [0.5.0] — 2026-10-04
 
 ### Adăugat

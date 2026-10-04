@@ -88,3 +88,14 @@ test('liveEpic: expirate dispar, anuntate devin gratis la ora de start', () => {
   )
   assert.deepEqual(out.map((x) => [x.id, x.current]), [['started', true], ['next', false]])
 })
+
+test('checksumOk: acceptat doar cu SHA-256 care se potriveste', async () => {
+  const { checksumOk } = await import('../src/main/checksum.ts')
+  const data = Buffer.from('installer bytes')
+  const good = 'sha256:' + (await import('node:crypto')).createHash('sha256').update(data).digest('hex')
+  assert.equal(checksumOk(data, good), true)
+  assert.equal(checksumOk(data, good.toUpperCase().replace('SHA256', 'sha256')), true)
+  assert.equal(checksumOk(Buffer.from('tampered'), good), false)
+  assert.equal(checksumOk(data, undefined), true) // asset vechi, fara digest: ramane marimea
+  assert.equal(checksumOk(data, 'sha512:abc'), false) // ilizibil: refuzat, nu ignorat
+})

@@ -4,30 +4,33 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import type { UpdateInfo, UpdateProgress } from '../shared/types'
+import { checksumOk } from './checksum'
+import { dataRoot } from './config'
 
 /**
- * Auto-actualizare pentru varianta portabila.
+ * Auto-actualizare prin instalator, dupa tiparul din File Labs (verificarea
+ * SHA-256) si Shelf (predarea catre un .cmd detasat):
  *
- * Nu exista instalator: aplicatia e un singur .exe, deci "actualizarea"
- * inseamna sa pun fisierul nou langa cel vechi, sa-l pornesc si sa-l sterg pe
- * cel vechi. Tiparul e preluat din Game Browser prin PartsVault, unde ruleaza de
- * zeci de versiuni, cu tot cu cele doua capcane platite acolo:
+ *  - descarc `SteamRadar-<ver>-setup.exe` in %TEMP%, ii verific marimea si
+ *    SHA-256-ul publicat de GitHub, apoi predau unui .cmd detasat si ies: nimic
+ *    din acest proces nu poate supravietui instalatorului care ii suprascrie exe-ul.
+ *    Scriptul asteapta sa se deblocheze exe-ul, ruleaza instalatorul si abia apoi
+ *    porneste aplicatia (un NSIS silentios nu o mai porneste el).
+ *  - silentios doar cand e deja instalata. Varianta portabila ruleaza din
+ *    %TEMP%\<random>\, deci n-are un folder de instalare de refolosit: ea primeste
+ *    o singura data instalatorul vizibil, iar datele ei se copiaza inainte in
+ *    %APPDATA%, ca istoricul sa nu se piarda.
  *
- *  - `process.execPath` NU e bun: exe-ul portabil se auto-extrage in
- *    `%TEMP%\<random>\`, deci arata spre copia temporara. Folderul real, in care
- *    sta fisierul pe care il dublu-clickeaza omul, vine din
- *    `PORTABLE_EXECUTABLE_DIR`, setata de wrapper-ul electron-builder.
- *  - stergerea vechiului exe esueaza daca procesul inlocuit inca tine lock pe
- *    fisier. `app.quit()` doar programeaza inchiderea, deci o singura incercare
- *    la pornire nu ajunge - de aici reincercarile intarziate.
- *
- * Mai e o capcana notata in Game Browser: maturarea sterge orice exe cu versiune
- * mai mica din acelasi folder, inclusiv build-uri de test pastrate intentionat.
- * Nu tine mai multe versiuni in folderul din care rulezi.
+ * Capcanele din Shelf, platite acolo: bucla de asteptare foloseste doar comenzi
+ * cmd (un `tasklist | find` intr-un proces fara consola se blocheaza la nesfarsit),
+ * `/D=` trebuie sa fie ultimul parametru si fara ghilimele, iar instalatorul se
+ * ruleaza cu `call`, nu cu `start /wait`.
  */
 
 const UPDATE_REPO = 'limburatorul/steamradar'
-const ASSET_PATTERN = /^SteamRadar-(\d+\.\d+\.\d+)-portabil\.exe$/i
+/** Ce cauta actualizarea: instalatorul. Portabilul ramane in release doar pentru versiunile vechi. */
+const SETUP_PATTERN = /^SteamRadar-(\d+\.\d+\.\d+)-setup\.exe$/i
+const PORTABLE_PATTERN = /^SteamRadar-(\d+\.\d+\.\d+)-portabil\.exe$/i
 
 const USER_AGENT = 'SteamRadar-Updater'
 
@@ -36,10 +39,10 @@ interface GitHubRelease {
   body?: string
   draft?: boolean
   prerelease?: boolean
-  assets?: Array<{ name?: string; browser_download_url?: string; size?: number }>
+  assets?: Array<{ name?: string; browser_download_url?: string; size?: number; digest?: string }>
 }
 
-/** Folderul in care sta .exe-ul portabil, sau null cand rulam altfel. */
+/** Folderul in care sta .exe-ul portabil, sau null cand rulam instalata. */
 export function portableDir(): string | null {
   const dir = process.env.PORTABLE_EXECUTABLE_DIR
   return dir && dir.trim() ? dir : null
@@ -87,9 +90,9 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
       return { available: false, currentVersion, latestVersion }
     }
 
-    const asset = (release.assets ?? []).find((a) => a.name && ASSET_PATTERN.test(a.name))
+    const asset = (release.assets ?? []).find((a) => a.name && SETUP_PATTERN.test(a.name))
     if (!asset?.browser_download_url) {
-      return { available: false, currentVersion, latestVersion, error: 'release has no executable' }
+      return { available: false, currentVersion, latestVersion, error: 'release has no installer' }
     }
 
     return {
@@ -98,7 +101,8 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
       latestVersion,
       notes: release.body?.slice(0, 4000),
       downloadUrl: asset.browser_download_url,
-      sizeBytes: asset.size
+      sizeBytes: asset.size,
+      digest: asset.digest
     }
   } catch (err) {
     return {
@@ -109,20 +113,61 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
   }
 }
 
+/** Aproximativ doua minute, la ~0,35 s pe iteratie (masurat in Shelf). */
+const EXE_UNLOCK_MAX_TRIES = 340
+
+/** La trecerea de la portabil: datele de langa exe merg in %APPDATA%, o singura data. */
+async function migratePortableData(): Promise<void> {
+  const from = dataRoot()
+  const to = app.getPath('userData')
+  if (from === to) return
+  const exists = (f: string): Promise<boolean> =>
+    fs.access(f).then(
+      () => true,
+      () => false
+    )
+  if (await exists(path.join(to, 'config.json'))) return
+  await fs.mkdir(to, { recursive: true })
+  for (const name of await fs.readdir(from).catch(() => [])) {
+    if (name.endsWith('.json')) await fs.copyFile(path.join(from, name), path.join(to, name))
+  }
+}
+
+async function runInstallerAndRelaunch(installer: string, silent: boolean): Promise<void> {
+  const exe = process.execPath
+  const script = path.join(app.getPath('temp'), `steamradar-update-${Date.now()}.cmd`)
+  const lines = [
+    '@echo off',
+    'set /a tries=0',
+    ':waitloop',
+    'set /a tries+=1',
+    `if %tries% gtr ${EXE_UNLOCK_MAX_TRIES} goto runinstaller`,
+    // exe-ul care ruleaza e blocat: daca il pot deschide pentru scriere, a iesit
+    `2>nul (>>"${exe}" call ) && goto runinstaller`,
+    'for /l %%i in (1,1,700000) do @rem',
+    'goto waitloop',
+    ':runinstaller',
+    silent ? `call "${installer}" /S /D=${path.dirname(exe)}` : `call "${installer}"`,
+    // instalatorul vizibil are propriul "Run SteamRadar" la final
+    silent ? `start "" "${exe}"` : '',
+    'del "%~f0"'
+  ].filter(Boolean)
+  await fs.writeFile(script, lines.join('\r\n'), 'utf-8')
+  spawn('cmd.exe', ['/c', script], { detached: true, stdio: 'ignore', windowsHide: true }).unref()
+}
+
 /**
- * Descarca versiunea noua langa cea curenta, o porneste si inchide aplicatia.
- * Nu sterge nimic aici: curatarea o face urmatoarea pornire, cand fisierul vechi
- * nu mai e blocat.
+ * Descarca instalatorul, il verifica si il preda scriptului, apoi inchide
+ * aplicatia. Nu sterge nimic: instalatorul inlocuieste fisierele pe loc.
  */
 export async function downloadAndRestart(
   info: UpdateInfo,
   onProgress: (p: UpdateProgress) => void
 ): Promise<{ ok: boolean; error?: string }> {
-  const dir = portableDir()
-  if (!dir) return { ok: false, error: 'auto-update only works on the portable build' }
+  if (!app.isPackaged) return { ok: false, error: 'auto-update only works from a built app' }
   if (!info.downloadUrl || !info.latestVersion) return { ok: false, error: 'download link missing' }
 
-  const target = path.join(dir, `SteamRadar-${info.latestVersion}-portabil.exe`)
+  const target = path.join(app.getPath('temp'), `SteamRadar Setup ${info.latestVersion}.exe`)
   const temp = `${target}.partial`
 
   try {
@@ -147,29 +192,25 @@ export async function downloadAndRestart(
 
     onProgress({ phase: 'verifying', message: 'Checking the file...' })
 
-    // marimea anuntata de GitHub e singura verificare pe care o pot face fara
-    // semnatura; prinde descarcarile trunchiate, care altfel dau un exe mort
+    // marimea prinde descarcarile trunchiate, SHA-256 restul: fisierul asta e pe
+    // cale sa fie rulat ca instalator
     if (info.sizeBytes && received !== info.sizeBytes) {
       throw new Error(`incomplete file: ${received} of ${info.sizeBytes} bytes`)
     }
-
-    const buffer = new Uint8Array(received)
-    let offset = 0
-    for (const chunk of chunks) {
-      buffer.set(chunk, offset)
-      offset += chunk.byteLength
+    const buffer = Buffer.concat(chunks, received)
+    if (!checksumOk(buffer, info.digest)) {
+      throw new Error("the download doesn't match the checksum GitHub published for it")
     }
 
-    // scriu intai cu alt nume: un .exe pe jumatate scris, cu numele final, ar fi
-    // pornit de om inainte sa fie gata
+    // intai cu alt nume: un instalator pe jumatate scris n-are voie sa existe sub numele final
     await fs.writeFile(temp, buffer)
     await fs.rename(temp, target)
 
-    onProgress({ phase: 'restarting', message: 'Starting the new version...' })
+    const portable = portableDir() !== null
+    if (portable) await migratePortableData()
 
-    // detasat, altfel noul proces moare odata cu cel curent
-    const child = spawn(target, [], { detached: true, stdio: 'ignore', cwd: dir })
-    child.unref()
+    onProgress({ phase: 'restarting', message: 'Starting the installer...' })
+    await runInstallerAndRelaunch(target, !portable)
 
     setTimeout(() => app.quit(), 800)
     return { ok: true }
@@ -182,12 +223,12 @@ export async function downloadAndRestart(
 }
 
 /**
- * Sterge executabilele mai vechi ramase langa cel curent.
+ * Sterge executabilele portabile mai vechi ramase langa cel curent (de la
+ * actualizarile facute de versiunile dinainte de instalator).
  *
  * Ruleaza de trei ori: imediat, apoi la 5 si 20 de secunde. Procesul inlocuit
  * poate tine inca lock pe fisierul lui in momentul pornirii noastre, iar o
- * singura incercare esueaza tacut si lasa gunoiul acolo pana la urmatoarea
- * repornire - exact bug-ul prins in Game Browser.
+ * singura incercare esueaza tacut - exact bug-ul prins in Game Browser.
  */
 export function cleanupOldExecutables(): void {
   const dir = portableDir()
@@ -197,7 +238,7 @@ export function cleanupOldExecutables(): void {
   const sweep = async (): Promise<void> => {
     try {
       for (const name of await fs.readdir(dir)) {
-        const match = name.match(ASSET_PATTERN)
+        const match = name.match(PORTABLE_PATTERN)
         if (!match) continue
         if (compareVersions(match[1], current) >= 0) continue
         await fs.unlink(path.join(dir, name)).catch(() => undefined)
@@ -235,7 +276,7 @@ export async function announceUpdate(): Promise<void> {
 export function scheduleUpdateChecks(minutes: number): void {
   if (updateTimer) clearInterval(updateTimer)
   updateTimer = null
-  if (!minutes || minutes <= 0 || !portableDir()) return
+  if (!minutes || minutes <= 0 || !app.isPackaged) return
   updateTimer = setInterval(() => void announceUpdate(), Math.max(15, minutes) * 60_000)
 }
 

@@ -366,8 +366,9 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
           <div className="card">
             <h2>Updates</h2>
             <p className="hint">
-              The portable build updates itself: it downloads the new .exe next to the current one,
-              starts it and deletes the old file on the next launch.
+              SteamRadar updates itself: it downloads the installer, checks it against the checksum
+              GitHub publishes, installs it over the current copy and starts again. The portable
+              build is offered the installer once and keeps its data.
             </p>
             <div className="row">
               <label className="k">Check every</label>

@@ -202,6 +202,8 @@ export interface UpdateInfo {
   notes?: string
   downloadUrl?: string
   sizeBytes?: number
+  /** `sha256:<hex>`, asa cum il publica GitHub pentru fiecare fisier atasat. */
+  digest?: string
   error?: string
 }
 

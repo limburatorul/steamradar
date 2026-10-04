@@ -28,4 +28,4 @@ jobs:
         run: |
           v="${GITHUB_REF_NAME#v}"
           awk -v v="$v" 'index($0, "## [" v "]") == 1 {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md
-          gh release create "$GITHUB_REF_NAME" "release/SteamRadar-$v-portabil.exe" --title "SteamRadar $v" --notes-file notes.md --latest
+          gh release create "$GITHUB_REF_NAME" "release/SteamRadar-$v-setup.exe" "release/SteamRadar-$v-portabil.exe" --title "SteamRadar $v" --notes-file notes.md --latest
