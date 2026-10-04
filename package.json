@@ -11,7 +11,7 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "dist": "electron-vite build && electron-builder --win --x64",
+    "dist": "electron-vite build && electron-builder --win --x64 --publish never",
     "probe": "node scripts/probe.mjs",
     "test": "node --test \"test/*.test.ts\"",
     "screenshots": "node scripts/screenshots.mjs"
