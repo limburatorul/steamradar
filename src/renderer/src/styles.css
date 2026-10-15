@@ -775,6 +775,30 @@ input[type='checkbox'] {
   color: #fff;
 }
 
+.works-with {
+  margin-top: 10px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.works-with .label {
+  margin-bottom: 2px;
+}
+
+.works-with p {
+  margin: 2px 0;
+}
+
+.works-with a {
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.works-with a:hover {
+  text-decoration: underline;
+}
+
 .event-time {
   color: var(--text-2);
   font-size: 12px;

@@ -22,6 +22,7 @@ import {
   schedule
 } from './scanner'
 import { tierOf } from './diff'
+import { readShelfOwned, readSisters } from './ecosystem'
 import {
   addWatch,
   clearEvents,
@@ -130,6 +131,13 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('watch:update', (_e, key: string, patch: Partial<WatchItem>) =>
     updateWatch(key, patch)
   )
+
+  // cheile din lista de urmarire pentru jocuri pe care omul le are deja in Shelf
+  ipcMain.handle('watch:in-shelf', async () => {
+    const owned = await readShelfOwned()
+    return (await getWatchlist()).filter(owned).map((w) => w.key)
+  })
+  ipcMain.handle('ecosystem:sisters', () => readSisters())
 
   ipcMain.handle('scan:status', () => getStatus())
   ipcMain.handle('scan:running', () => isScanning())

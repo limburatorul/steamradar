@@ -1,6 +1,7 @@
 import type { AppConfig, Deal, DealEvent, EpicFreeGame, ScanStatus } from '../shared/types'
 import { loadConfig } from './config'
-import { diff } from './diff'
+import { diff, toNotify } from './diff'
+import { readShelfOwned } from './ecosystem'
 import { recordScan, startTracking } from './history'
 import { notifyEpic, notifyEvents, notifyWatch } from './notify'
 import { StoreHttpError } from './http'
@@ -428,17 +429,19 @@ async function commit(
   }
   if (full) await recordScan(deals, [...watched])
 
-  const wanted = events.filter((e) => cfg.notify[e.tier] && (e.store !== 'gog' || cfg.notifyGog))
+  const owned = await readShelfOwned()
+  const wanted = toNotify(events, cfg, owned)
   if (wanted.length) notifyEvents(wanted, cfg)
 
-  if (watchlist.length) await checkWatchlist(watchlist, deals, cfg)
+  if (watchlist.length) await checkWatchlist(watchlist, deals, cfg, owned)
 }
 
 /** Lista de urmarire alerteaza la orice scadere, nu doar la trecerea unui prag. */
 async function checkWatchlist(
   watchlist: Awaited<ReturnType<typeof getWatchlist>>,
   deals: Deal[],
-  cfg: AppConfig
+  cfg: AppConfig,
+  owned: (d: Deal) => boolean
 ): Promise<void> {
   const byKey = new Map(deals.map((d) => [d.key, d]))
   const hits: Array<{ deal: Deal; target: number | null }> = []
@@ -452,7 +455,8 @@ async function checkWatchlist(
     const underTarget = target == null || deal.priceFinal <= target
     if (!dropped || !underTarget) continue
 
-    hits.push({ deal, target: w.targetPrice })
+    // un joc detinut in Shelf nu suna, dar pretul lui de referinta se rescrie mai jos ca la toate
+    if (!owned(deal)) hits.push({ deal, target: w.targetPrice })
     // rescriu pretul de referinta, altfel as anunta aceeasi scadere la nesfarsit
     await updateWatch(w.key, { priceAtAdd: deal.priceFinal, priceTextAtAdd: deal.priceText })
   }

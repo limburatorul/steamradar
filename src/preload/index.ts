@@ -49,8 +49,14 @@ const api = {
     add: (item: WatchItem): Promise<WatchItem[]> => ipcRenderer.invoke('watch:add', item),
     remove: (key: string): Promise<WatchItem[]> => ipcRenderer.invoke('watch:remove', key),
     update: (key: string, patch: Partial<WatchItem>): Promise<WatchItem[]> =>
-      ipcRenderer.invoke('watch:update', key, patch)
+      ipcRenderer.invoke('watch:update', key, patch),
+    /** Cheile jocurilor urmarite pe care omul le are deja in Shelf. */
+    inShelf: (): Promise<string[]> => ipcRenderer.invoke('watch:in-shelf')
   },
+
+  /** Aplicatiile Protagonist Labs instalate pe PC, pentru "Works with". */
+  sisters: (): Promise<{ installed: string[]; bought: boolean }> =>
+    ipcRenderer.invoke('ecosystem:sisters'),
 
   scan: {
     status: (): Promise<ScanStatus> => ipcRenderer.invoke('scan:status'),

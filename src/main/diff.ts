@@ -56,3 +56,51 @@ export function diff(deals: Deal[], previous: Map<string, Deal>, cfg: AppConfig)
   // gratis intai, apoi cele mai mari reduceri
   return out.sort((a, b) => RANK[a.tier] - RANK[b.tier] || b.discountPct - a.discountPct)
 }
+
+/** Numele redus la litere si cifre, ca "DOOM™: Eternal" si "Doom Eternal" sa fie acelasi joc. */
+export function normName(name: string): string {
+  // lowercase inainte de NFKD: asa "™" devine "TM" mare si cade odata cu restul semnelor
+  return name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '')
+}
+
+/**
+ * Jocurile pe care omul le are deja in Shelf, din `shelf.games.json`. Fisierul e
+ * al altei aplicatii, deci orice forma ciudata inseamna "nimic detinut".
+ *
+ * Potrivirea e intai pe appid-ul Steam; numele normalizat conteaza doar cand una
+ * dintre parti n-are appid (un joc GOG, sau un joc din Shelf luat de pe Epic) -
+ * altfel "Doom" din 2016 s-ar potrivi cu "DOOM" din 1993.
+ */
+export function shelfOwned(
+  shelf: unknown
+): (d: { store: string; appid: number | null; name: string }) => boolean {
+  const games = (shelf as { games?: unknown } | null)?.games
+  const ids = new Set<number>()
+  const noIdNames = new Set<string>()
+  const allNames = new Set<string>()
+  for (const g of Array.isArray(games) ? games : []) {
+    if (!g || typeof g.name !== 'string') continue
+    const n = normName(g.name)
+    if (!n) continue
+    allNames.add(n)
+    if (Number.isInteger(g.steamAppId) && g.steamAppId > 0) ids.add(g.steamAppId)
+    else noIdNames.add(n)
+  }
+  return (d) => {
+    const n = normName(d.name)
+    if (d.store === 'steam' && d.appid) return ids.has(d.appid) || noIdNames.has(n)
+    return allNames.has(n)
+  }
+}
+
+/** Intrarile care chiar suna: pragul e pornit, GOG e pornit, si jocul nu e deja in Shelf. */
+export function toNotify(
+  events: DealEvent[],
+  cfg: AppConfig,
+  owned: (e: DealEvent) => boolean
+): DealEvent[] {
+  // un joc detinut ramane in istoric, doar nu mai trimite notificare
+  return events.filter(
+    (e) => cfg.notify[e.tier] && (e.store !== 'gog' || cfg.notifyGog) && !owned(e)
+  )
+}

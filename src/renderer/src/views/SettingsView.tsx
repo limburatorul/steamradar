@@ -11,6 +11,22 @@ const COUNTRIES: Array<[string, string]> = [
   ['US', 'United States (USD)']
 ]
 
+/** Aplicatiile platite ale studioului, pentru reducerea de 30% din "Works with". */
+const PAID: Array<[string, string]> = [
+  ['shelf', 'Shelf'],
+  ['stash', 'Stash'],
+  ['frostpane', 'Frostpane'],
+  ['reel', 'Reel'],
+  ['planner', 'Planner'],
+  ['reminder', 'Reminder']
+]
+
+/** Pagina unei aplicatii surori; cu `code`, reducerea pentru cine a cumparat deja ceva. */
+function sisterUrl(id: string, code?: string): string {
+  const utm = 'utm_source=steamradar&utm_medium=app&utm_campaign=works-with'
+  return `https://protagonistlabs.app/${id}/?${code ? `code=${code}&` : ''}${utm}`
+}
+
 interface Props {
   config: AppConfig
   onChange: (patch: Partial<AppConfig>) => void
@@ -22,12 +38,17 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
   const [identity, setIdentity] = useState<{ ok: boolean; reason: string } | null>(null)
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
   const [checking, setChecking] = useState(false)
+  const [sisters, setSisters] = useState<{ installed: string[]; bought: boolean } | null>(null)
 
   useEffect(() => {
+    void window.api.sisters().then(setSisters)
     void window.api.config.dataFolder().then(setFolder)
     void window.api.version().then(setVersion)
     void window.api.update.identity().then(setIdentity)
   }, [])
+
+  // o singura linie de reducere, doar cu aplicatiile platite care lipsesc, cel mult 4
+  const offers = PAID.filter(([id]) => !sisters?.installed.includes(id)).slice(0, 4)
 
   const checkUpdate = (): void => {
     setChecking(true)
@@ -426,6 +447,42 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
               </button>
               <span className="note">feedback@protagonistlabs.app</span>
             </div>
+            {sisters && (
+              <div className="works-with">
+                <div className="label">Works with</div>
+                {sisters.installed.includes('shelf') ? (
+                  <p>
+                    Shelf · games you own there do not alert and are marked “In your Shelf” in the
+                    watchlist; Shelf shows your watched games that are on sale
+                  </p>
+                ) : (
+                  <p>
+                    <a href={sisterUrl('shelf')} target="_blank" rel="noreferrer">
+                      Shelf
+                    </a> ·
+                    would skip alerts for games you already own and show your watched deals
+                  </p>
+                )}
+                {sisters.bought && offers.length > 0 && (
+                  <p>
+                    Owners of one of our apps get 30% off the others:{' '}
+                    {offers.map(([id, name], i) => (
+                      <span key={id}>
+                        {i > 0 && ' · '}
+                        {/* target=_blank trece prin setWindowOpenHandler, deci in browser */}
+                        <a
+                          href={sisterUrl(id, id === 'shelf' ? 'SECOND30SHELF' : 'SECOND30')}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {name}
+                        </a>
+                      </span>
+                    ))}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="card">

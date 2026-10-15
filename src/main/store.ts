@@ -3,6 +3,7 @@ import path from 'node:path'
 import { dataRoot } from './config'
 import type { Deal, DealEvent, EpicFreeGame, WatchItem } from '../shared/types'
 import { liveEpic } from '../shared/epic'
+import { writeWatchShare } from './ecosystem'
 
 /**
  * Tot ce trebuie sa supravietuiasca inchiderii aplicatiei, in fisiere JSON
@@ -83,6 +84,7 @@ function stamp<T extends { store?: Deal['store'] }>(item: T): T {
 export async function saveCatalog(deals: Deal[], currency: string): Promise<void> {
   catalog = { updatedAt: new Date().toISOString(), currency, deals }
   await writeJson('catalog.json', catalog)
+  await shareWatchlist()
 }
 
 /** Prima pornire: nu am cu ce compara, deci nu am ce alerta. */
@@ -133,12 +135,14 @@ export async function addWatch(item: WatchItem): Promise<WatchItem[]> {
   const all = await getWatchlist()
   if (!all.some((w) => w.key === item.key)) watchlist = [item, ...all]
   await writeJson('watchlist.json', watchlist)
+  await shareWatchlist()
   return watchlist!
 }
 
 export async function removeWatch(key: string): Promise<WatchItem[]> {
   watchlist = (await getWatchlist()).filter((w) => w.key !== key)
   await writeJson('watchlist.json', watchlist)
+  await shareWatchlist()
   return watchlist
 }
 
@@ -146,7 +150,36 @@ export async function updateWatch(key: string, patch: Partial<WatchItem>): Promi
   const all = await getWatchlist()
   watchlist = all.map((w) => (w.key === key ? { ...w, ...patch, key: w.key } : w))
   await writeJson('watchlist.json', watchlist)
+  await shareWatchlist()
   return watchlist
+}
+
+/**
+ * `steamradar.watch.json` din folderul comun: lista de urmarire cu pretul de
+ * acum din catalog, ca Shelf sa arate ce joc urmarit e la reducere. Se rescrie
+ * dupa fiecare scanare si la fiecare schimbare a listei.
+ */
+export async function shareWatchlist(): Promise<void> {
+  const cat = await getCatalog()
+  const byKey = new Map(cat.deals.map((d) => [d.key, d]))
+  // simbolul sta unde il pune magazinul: "3,00€" dupa, "$3.00" inainte
+  const before = /^\D/.test(cat.deals[0]?.priceText ?? '')
+  const money = (n: number): string => (before ? `${cat.currency}${n}` : `${n}${cat.currency}`)
+  await writeWatchShare(
+    (await getWatchlist()).map((w) => {
+      const d = byKey.get(w.key)
+      return {
+        name: w.name,
+        store: w.store,
+        appid: w.appid ?? undefined,
+        url: w.url,
+        onSale: !!d,
+        priceText: d?.priceText,
+        discountPct: d?.discountPct,
+        targetPriceText: w.targetPrice != null ? money(w.targetPrice) : undefined
+      }
+    })
+  )
 }
 
 /* --------------------------------------------------------------------- Epic */

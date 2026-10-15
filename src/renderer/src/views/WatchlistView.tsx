@@ -24,15 +24,19 @@ export default function WatchlistView({
   refreshKey
 }: Props): React.JSX.Element {
   const [current, setCurrent] = useState<Map<string, Deal>>(new Map())
+  // jocurile pe care le ai deja in Shelf: nu trimit alerte, dar raman in lista
+  const [inShelf, setInShelf] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!watchlist.length) {
       setCurrent(new Map())
+      setInShelf(new Set())
       return
     }
     void window.api.deals.lookup(watchlist.map((w) => w.key)).then((deals) => {
       setCurrent(new Map(deals.map((d) => [d.key, d])))
     })
+    void window.api.watch.inShelf().then((keys) => setInShelf(new Set(keys)))
   }, [watchlist, refreshKey])
 
   const asDeal = (w: WatchItem): Deal =>
@@ -87,6 +91,14 @@ export default function WatchlistView({
                   onOpen={onOpen}
                   aside={
                     <>
+                      {inShelf.has(w.key) && (
+                        <span
+                          className="event-time"
+                          title="You own it in Shelf, so it does not alert"
+                        >
+                          In your Shelf
+                        </span>
+                      )}
                       <span className="event-time">added {timeAgo(w.addedAt)}</span>
                       {!onSale && <span className="event-time">not on sale right now</span>}
                       <label className="note" style={{ display: 'flex', gap: 5 }}>

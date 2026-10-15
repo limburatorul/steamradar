@@ -3,6 +3,19 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.7.0] — 2026-10-15
+
+### Adăugat
+
+- **Merge împreună cu Shelf.** Dacă ai Shelf, un joc pe care îl ai deja în
+  bibliotecă (același appid Steam, altfel același nume) nu mai trimite
+  notificări, nici din praguri, nici din lista de urmărire, iar în lista de
+  urmărire apare „In your Shelf”. Intrările rămân în istoric.
+- Lista de urmărire, cu prețul de acum, e pusă la dispoziția Shelf, ca să-ți
+  arate acolo jocurile urmărite care sunt la reducere.
+- **Works with** în Settings: ce adaugă Shelf la SteamRadar și, dacă lipsește,
+  unde îl găsești.
+
 ## [0.6.0] — 2026-10-04
 
 ### Adăugat

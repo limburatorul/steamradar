@@ -3,9 +3,10 @@ import path from 'node:path'
 import { loadConfig } from './config'
 import { ICON_APP } from './icon'
 import { registerIpc } from './ipc'
+import { writeCard } from './ecosystem'
 import { setWindowOpener } from './notify'
 import { cancelScan, onStatus, scanFull, schedule, stopSchedule } from './scanner'
-import { getCatalog } from './store'
+import { getCatalog, shareWatchlist } from './store'
 import { ensureNotificationIdentity } from './shortcut'
 import { beginQuit, createTray, destroyTray, isQuitting, refreshTray } from './tray'
 import {
@@ -103,6 +104,10 @@ app.whenReady().then(async () => {
   onStatus(() => void refreshTray(showWindow))
 
   if (!process.argv.includes('--hidden') || !cfg.startMinimized) createWindow()
+
+  // cartea din folderul comun Protagonist Labs, la fiecare pornire (vezi ecosystem.ts)
+  writeCard()
+  void shareWatchlist()
 
   // curat executabilele vechi ramase langa cel curent, cu reincercari:
   // procesul inlocuit poate tine inca lock pe fisierul lui

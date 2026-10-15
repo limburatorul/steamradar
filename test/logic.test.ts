@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { applyQuery } from '../src/shared/query.ts'
 import { liveEpic } from '../src/shared/epic.ts'
-import { diff, tierOf } from '../src/main/diff.ts'
+import { diff, shelfOwned, tierOf, toNotify } from '../src/main/diff.ts'
 import type { AppConfig, Deal, EpicFreeGame } from '../src/shared/types.ts'
 
 const cfg = { thresholdLow: 5, thresholdHigh: 10, showAdult: false } as AppConfig
@@ -98,4 +98,42 @@ test('checksumOk: acceptat doar cu SHA-256 care se potriveste', async () => {
   assert.equal(checksumOk(Buffer.from('tampered'), good), false)
   assert.equal(checksumOk(data, undefined), true) // asset vechi, fara digest: ramane marimea
   assert.equal(checksumOk(data, 'sha512:abc'), false) // ilizibil: refuzat, nu ignorat
+})
+
+test('Shelf: jocurile detinute nu suna, nici din praguri, nici din lista de urmarire', () => {
+  // forma din contractul Ecosistem: shelf.games.json scris de Shelf
+  const shelf = JSON.parse(
+    JSON.stringify({
+      schema: 1,
+      updated: '2026-10-15T09:00:00Z',
+      games: [
+        { id: 's1', name: 'Hades', store: 'steam', steamAppId: 1145360, saves: [], canMove: true },
+        { id: 'e1', name: 'DOOM™: Eternal', store: 'epic', saves: [], canMove: false },
+        { id: 's2', name: 'Doom', store: 'steam', steamAppId: 2280, saves: [], canMove: true },
+        { id: 'x', store: 'manual' } // fara nume: ignorat
+      ]
+    })
+  )
+  const owned = shelfOwned(shelf)
+  const cfgN = { ...cfg, notify: { free: true, under5: true, under10: true }, notifyGog: true } as AppConfig
+  const prev = new Map<string, Deal>()
+  const now = [
+    deal({ key: 'App_1145360', appid: 1145360, name: 'Hades', priceFinal: 0 }), // acelasi appid
+    deal({ key: 'App_782330', appid: 782330, name: 'DOOM Eternal', priceFinal: 300 }), // nume, joc Epic fara appid
+    deal({ key: 'App_379720', appid: 379720, name: 'DOOM', priceFinal: 300 }), // alt appid, acelasi nume: NU
+    deal({ key: 'Gog_1', store: 'gog', appid: null, name: 'Hades', priceFinal: 300 }), // GOG: dupa nume
+    deal({ key: 'App_9', appid: 9, name: 'Celeste', priceFinal: 300 })
+  ]
+  const events = diff(now, prev, cfgN)
+  assert.equal(events.length, 5) // istoricul le pastreaza pe toate
+  assert.deepEqual(toNotify(events, cfgN, owned).map((e) => e.key).sort(), ['App_379720', 'App_9'])
+
+  // lista de urmarire foloseste acelasi predicat pe oferte
+  assert.equal(owned(now[0]), true)
+  assert.equal(owned(now[4]), false)
+
+  // fisier lipsa sau stricat = nimic detinut
+  for (const bad of [null, {}, { games: 'x' }, { games: [null, 5] }]) {
+    assert.equal(toNotify(events, cfgN, shelfOwned(bad)).length, 5)
+  }
 })
