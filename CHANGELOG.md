@@ -10,6 +10,9 @@ versionarea e [SemVer](https://semver.org/lang/ro/).
 - Verificarea de actualizări rulează acum la fiecare oră (înainte la 45 de
   minute), plus una la câteva secunde după pornire. Cine avea vechiul implicit
   de 45 de minute trece singur pe 60.
+- „Check for updates” din Settings spune, când verificarea eșuează (fără
+  conexiune, GitHub ocupat), „Couldn't check for updates — no connection or
+  GitHub is busy. Try again later.”, nu eroarea brută.
 
 ### Securitate
 

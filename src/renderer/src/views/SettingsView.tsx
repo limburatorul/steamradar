@@ -407,12 +407,12 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
               <button onClick={checkUpdate} disabled={checking}>
                 {checking ? 'Checking…' : 'Check for updates'}
               </button>
-              <span className="note">
+              <span className="note" title={update?.error}>
                 {update
                   ? update.available
                     ? `Version ${update.latestVersion} is available`
                     : update.error
-                      ? update.error
+                      ? "Couldn't check for updates — no connection or GitHub is busy. Try again later."
                       : `You are on the latest version (${update.currentVersion})`
                   : ''}
               </span>
