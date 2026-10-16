@@ -71,6 +71,12 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
   }
 }
 
+/**
+ * Versiunea gasita de ultima verificare din acest proces. Descarcarea foloseste
+ * doar adresa si digest-ul de aici, nu ce trimite renderer-ul.
+ */
+let offered: { version: string; url: string; size?: number; digest: string } | null = null
+
 export async function checkForUpdate(): Promise<UpdateInfo> {
   const currentVersion = app.getVersion()
 
@@ -94,6 +100,11 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
     if (!asset?.browser_download_url) {
       return { available: false, currentVersion, latestVersion, error: 'release has no installer' }
     }
+    // fara SHA-256 publicat nu avem cu ce verifica instalatorul: nu-l oferim
+    if (!asset.digest) {
+      return { available: false, currentVersion, latestVersion, error: 'release has no checksum' }
+    }
+    offered = { version: latestVersion, url: asset.browser_download_url, size: asset.size, digest: asset.digest }
 
     return {
       available: true,
@@ -165,18 +176,22 @@ export async function downloadAndRestart(
   onProgress: (p: UpdateProgress) => void
 ): Promise<{ ok: boolean; error?: string }> {
   if (!app.isPackaged) return { ok: false, error: 'auto-update only works from a built app' }
-  if (!info.downloadUrl || !info.latestVersion) return { ok: false, error: 'download link missing' }
+  // doar versiunea pe care a gasit-o chiar procesul asta; banner-ul spune doar care
+  const release = offered
+  if (!release || release.version !== info.latestVersion) {
+    return { ok: false, error: 'Check for updates again, then update.' }
+  }
 
-  const target = path.join(app.getPath('temp'), `SteamRadar Setup ${info.latestVersion}.exe`)
+  const target = path.join(app.getPath('temp'), `SteamRadar Setup ${release.version}.exe`)
   const temp = `${target}.partial`
 
   try {
-    onProgress({ phase: 'downloading', receivedBytes: 0, totalBytes: info.sizeBytes })
+    onProgress({ phase: 'downloading', receivedBytes: 0, totalBytes: release.size })
 
-    const res = await fetchWithTimeout(info.downloadUrl, 300_000)
+    const res = await fetchWithTimeout(release.url, 300_000)
     if (!res.ok || !res.body) throw new Error(`download returned ${res.status}`)
 
-    const total = Number(res.headers.get('content-length')) || info.sizeBytes
+    const total = Number(res.headers.get('content-length')) || release.size
     const reader = res.body.getReader()
     const chunks: Uint8Array[] = []
     let received = 0
@@ -194,11 +209,11 @@ export async function downloadAndRestart(
 
     // marimea prinde descarcarile trunchiate, SHA-256 restul: fisierul asta e pe
     // cale sa fie rulat ca instalator
-    if (info.sizeBytes && received !== info.sizeBytes) {
-      throw new Error(`incomplete file: ${received} of ${info.sizeBytes} bytes`)
+    if (release.size && received !== release.size) {
+      throw new Error(`incomplete file: ${received} of ${release.size} bytes`)
     }
     const buffer = Buffer.concat(chunks, received)
-    if (!checksumOk(buffer, info.digest)) {
+    if (!checksumOk(buffer, release.digest)) {
       throw new Error("the download doesn't match the checksum GitHub published for it")
     }
 
@@ -269,7 +284,7 @@ export async function announceUpdate(): Promise<void> {
 }
 
 /**
- * Reverificare periodica, nu doar la pornire: aplicatia sta zile intregi in
+ * Reverificare periodica (implicit la 60 de minute), nu doar la pornire: aplicatia sta zile intregi in
  * tray, deci o verificare facuta doar la boot ar insemna sa afli de o versiune
  * noua abia la urmatoarea repornire a calculatorului.
  */

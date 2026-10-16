@@ -96,7 +96,8 @@ test('checksumOk: acceptat doar cu SHA-256 care se potriveste', async () => {
   assert.equal(checksumOk(data, good), true)
   assert.equal(checksumOk(data, good.toUpperCase().replace('SHA256', 'sha256')), true)
   assert.equal(checksumOk(Buffer.from('tampered'), good), false)
-  assert.equal(checksumOk(data, undefined), true) // asset vechi, fara digest: ramane marimea
+  assert.equal(checksumOk(data, undefined), false) // fara digest: refuzat
+  assert.equal(checksumOk(data, ''), false)
   assert.equal(checksumOk(data, 'sha512:abc'), false) // ilizibil: refuzat, nu ignorat
 })
 

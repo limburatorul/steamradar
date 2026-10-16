@@ -3,6 +3,22 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.7.1] — 2026-10-16
+
+### Schimbat
+
+- Verificarea de actualizări rulează acum la fiecare oră (înainte la 45 de
+  minute), plus una la câteva secunde după pornire. Cine avea vechiul implicit
+  de 45 de minute trece singur pe 60.
+
+### Securitate
+
+- Actualizarea descarcă doar versiunea găsită de verificarea făcută chiar de
+  aplicație (adresa și suma SHA-256 rămân în procesul principal), nu ce îi
+  trimite fereastra.
+- O versiune fără sumă SHA-256 publicată nu mai e oferită, iar un fișier fără
+  sumă e refuzat, nu acceptat doar pe mărime.
+
 ## [0.7.0] — 2026-10-15
 
 ### Adăugat

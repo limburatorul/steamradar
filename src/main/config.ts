@@ -30,7 +30,7 @@ const DEFAULTS: AppConfig = {
   startMinimized: false,
   autoStart: false,
   closeToTray: true,
-  updateCheckMin: 45,
+  updateCheckMin: 60,
   openInSteamClient: true,
   glassStyle: 'glass',
   backdrop: true,
@@ -69,6 +69,8 @@ export async function loadConfig(): Promise<AppConfig> {
       notify: { ...DEFAULTS.notify, ...(parsed.notify ?? {}) },
       notifyEpic: { ...DEFAULTS.notifyEpic, ...(parsed.notifyEpic ?? {}) }
     }
+    // 45 era vechiul implicit, scris in config.json de orice salvare: trece pe ora noua (0.7.1)
+    if (parsed.updateCheckMin === 45) cached.updateCheckMin = DEFAULTS.updateCheckMin
   } catch {
     cached = { ...DEFAULTS }
   }
