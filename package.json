@@ -1,9 +1,9 @@
 {
   "name": "steamradar",
-  "version": "0.7.2",
-  "description": "Vaneaza reduceri pe Steam si GOG, plus jocurile gratuite de pe Epic, si alerteaza cand jocurile devin gratis, sub 5 EUR sau sub 10 EUR",
+  "version": "0.7.3",
+  "description": "SteamRadar",
   "main": "out/main/index.js",
-  "author": "tucu",
+  "author": "Protagonist Labs",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -32,6 +32,7 @@
   "build": {
     "appId": "ro.steamradar.app",
     "productName": "SteamRadar",
+    "copyright": "Copyright © 2026 Protagonist Labs",
     "directories": {
       "output": "release"
     },
@@ -56,7 +57,8 @@
       "createStartMenuShortcut": true,
       "shortcutName": "SteamRadar",
       "artifactName": "SteamRadar-${version}-setup.${ext}",
-      "include": "build/installer.nsh"
+      "include": "build/installer.nsh",
+      "packElevateHelper": false
     }
   }
 }

@@ -3,6 +3,19 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.7.3] — 2026-10-18
+
+### Schimbat
+
+- Executabilele spun ale cui sunt: compania e Protagonist Labs (era „tucu”),
+  descrierea e „SteamRadar” (era o frază lungă în română, fără diacritice),
+  iar copyright-ul e „Copyright © 2026 Protagonist Labs”. Portabilul 0.7.2 era
+  semnalat de 2 din 67 de antivirusuri pe VirusTotal (McAfee, Trapmine), ambele
+  euristici; aplicația face exact ce făcea.
+- Pachetul nu mai conține `elevate.exe`, ajutorul de ridicare al lui
+  electron-builder: SteamRadar nu l-a folosit niciodată (se instalează per
+  utilizator și se actualizează cu propriul updater).
+
 ## [0.7.2] — 2026-10-17
 
 ### Schimbat
