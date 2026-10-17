@@ -57,12 +57,6 @@ export async function refreshTray(showWindow: () => void): Promise<void> {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: 'Open SteamRadar', click: showWindow },
-      { type: 'separator' },
-      { label: `${free} free right now`, enabled: false },
-      { label: `${epicFree} free on Epic`, enabled: false },
-      { label: `${under5} under ${cfg.thresholdLow}`, enabled: false },
-      { label: `${under10} under ${cfg.thresholdHigh}`, enabled: false },
-      { type: 'separator' },
       {
         label: isScanning() ? 'Scanning...' : 'Scan everything now',
         enabled: !isScanning(),
@@ -73,6 +67,11 @@ export async function refreshTray(showWindow: () => void): Promise<void> {
         enabled: !isScanning(),
         click: () => void scanFree()
       },
+      { type: 'separator' },
+      { label: `${free} free right now`, enabled: false },
+      { label: `${epicFree} free on Epic`, enabled: false },
+      { label: `${under5} under ${cfg.thresholdLow}`, enabled: false },
+      { label: `${under10} under ${cfg.thresholdHigh}`, enabled: false },
       { type: 'separator' },
       {
         label: 'Quit',

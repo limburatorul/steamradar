@@ -3,6 +3,15 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.7.2] — 2026-10-17
+
+### Schimbat
+
+- Meniul din tray are ordinea comună aplicațiilor Protagonist Labs: întâi
+  acțiunile (Open SteamRadar, Scan everything now, Check free games only),
+  apoi numărătorile, apoi Quit. Meniul urmează tema Windows (închis sau
+  deschis), iar rândul de sub mouse își păstrează culoarea textului.
+
 ## [0.7.1] — 2026-10-16
 
 ### Schimbat
