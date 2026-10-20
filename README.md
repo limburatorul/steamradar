@@ -127,6 +127,11 @@ settings. Games that became free get their own notification in both modes.
 The watchlist is the only place that also alerts on drops that reach no tier: you
 star a game at 40 and find out when it gets to 24. Optionally with a target price.
 
+With [Shelf](https://protagonistlabs.app/shelf/?utm_source=github&utm_medium=readme&utm_campaign=steamradar)
+installed, games you already own there do not alert, and the deal lists and the
+watchlist mark them "In your Shelf" without hiding them. SteamRadar reads Shelf's
+game list only while Shelf is installed; nothing leaves the PC.
+
 GOG discounts pass through the same tiers as the Steam ones; in Settings you can
 switch off only their notification, not the tracking. Epic has three separate
 announcements, each switched on or off in Settings: **a game became claimable**,

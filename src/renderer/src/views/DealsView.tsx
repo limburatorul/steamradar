@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Deal, Store, Tier } from '@shared/types'
 import type { DealQuery, Platform, SortKey } from '@shared/query'
-import DealRow from '../components/DealRow'
+import DealRow, { ownedInShelf } from '../components/DealRow'
 import { num } from '../format'
 
 const PAGE = 60
@@ -21,6 +21,8 @@ interface Props {
   title: string
   hint: string
   watched: Set<string>
+  /** Appid-urile Steam din Shelf. */
+  shelf: Set<number>
   onToggleWatch: (deal: Deal) => void
   onOpen: (deal: Deal) => void
   /** Se schimba dupa fiecare scanare, ca lista sa se reincarce singura. */
@@ -33,6 +35,7 @@ export default function DealsView({
   title,
   hint,
   watched,
+  shelf,
   onToggleWatch,
   onOpen,
   refreshKey
@@ -240,6 +243,7 @@ export default function DealsView({
                 key={d.key}
                 deal={d}
                 watched={watched.has(d.key)}
+                inShelf={ownedInShelf(shelf, d)}
                 onToggleWatch={onToggleWatch}
                 onOpen={onOpen}
               />

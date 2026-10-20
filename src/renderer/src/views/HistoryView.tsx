@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { Deal, DealEvent, Tier } from '@shared/types'
 import { TIERS, TIER_LABEL } from '@shared/types'
-import DealRow from '../components/DealRow'
+import DealRow, { ownedInShelf } from '../components/DealRow'
 import { eventToDeal, num, timeAgo } from '../format'
 
 interface Props {
   watched: Set<string>
+  /** Appid-urile Steam din Shelf. */
+  shelf: Set<number>
   onToggleWatch: (deal: Deal) => void
   onOpen: (deal: Deal) => void
   refreshKey: number
@@ -14,6 +16,7 @@ interface Props {
 
 export default function HistoryView({
   watched,
+  shelf,
   onToggleWatch,
   onOpen,
   refreshKey,
@@ -81,6 +84,7 @@ export default function HistoryView({
                 key={e.id}
                 deal={eventToDeal(e)}
                 watched={watched.has(e.key)}
+                inShelf={ownedInShelf(shelf, e)}
                 onToggleWatch={onToggleWatch}
                 onOpen={onOpen}
                 aside={

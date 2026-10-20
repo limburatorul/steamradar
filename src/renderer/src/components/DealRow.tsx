@@ -10,6 +10,16 @@ interface Props {
   onOpen: (deal: Deal) => void
   /** Text suplimentar la stanga pretului: momentul alertei, pragul de dinainte. */
   aside?: React.ReactNode
+  /** Jocul e deja in biblioteca din Shelf: ramane in lista, doar marcat. */
+  inShelf?: boolean
+}
+
+/** In listele de oferte potrivesc doar pe appid; dupa nume, "Doom" ar marca si "DOOM" din 1993. */
+export function ownedInShelf(
+  shelf: Set<number>,
+  deal: { store: string; appid: number | null }
+): boolean {
+  return deal.store === 'steam' && deal.appid != null && shelf.has(deal.appid)
 }
 
 export default function DealRow({
@@ -17,7 +27,8 @@ export default function DealRow({
   watched,
   onToggleWatch,
   onOpen,
-  aside
+  aside,
+  inShelf
 }: Props): React.JSX.Element {
   const free = deal.priceFinal <= 0
   // la Steam butonul duce in client, nu in browser; daca jocul n-are appid
@@ -54,6 +65,11 @@ export default function DealRow({
             <span>{deal.kind === 'dlc' ? 'DLC' : deal.kind === 'sub' ? 'package' : 'bundle'}</span>
           )}
           {endsIn(deal.discountEndsAt) && <span>{endsIn(deal.discountEndsAt)}</span>}
+          {inShelf && (
+            <span className="event-time" title="You own it in Shelf, so it does not alert">
+              In your Shelf
+            </span>
+          )}
           {aside}
         </div>
       </div>

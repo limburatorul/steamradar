@@ -4,6 +4,7 @@ import { dataRoot } from './config'
 import type { Deal, DealEvent, EpicFreeGame, WatchItem } from '../shared/types'
 import { liveEpic } from '../shared/epic'
 import { writeWatchShare } from './ecosystem'
+import { shareAppid } from './diff'
 
 /**
  * Tot ce trebuie sa supravietuiasca inchiderii aplicatiei, in fisiere JSON
@@ -157,7 +158,8 @@ export async function updateWatch(key: string, patch: Partial<WatchItem>): Promi
 /**
  * `steamradar.watch.json` din folderul comun: lista de urmarire cu pretul de
  * acum din catalog, ca Shelf sa arate ce joc urmarit e la reducere. Se rescrie
- * dupa fiecare scanare si la fiecare schimbare a listei.
+ * dupa fiecare scanare, la fiecare schimbare a listei si la 12 h (vezi
+ * WATCH_SHARE_EVERY_MS).
  */
 export async function shareWatchlist(): Promise<void> {
   const cat = await getCatalog()
@@ -171,7 +173,7 @@ export async function shareWatchlist(): Promise<void> {
       return {
         name: w.name,
         store: w.store,
-        appid: w.appid ?? undefined,
+        appid: shareAppid(w.appid),
         url: w.url,
         onSale: !!d,
         priceText: d?.priceText,

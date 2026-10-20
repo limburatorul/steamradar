@@ -22,7 +22,7 @@ import {
   schedule
 } from './scanner'
 import { tierOf } from './diff'
-import { readShelfOwned, readSisters } from './ecosystem'
+import { readShelfAppids, readShelfOwned, readSisters } from './ecosystem'
 import {
   addWatch,
   clearEvents,
@@ -137,6 +137,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
     const owned = await readShelfOwned()
     return (await getWatchlist()).filter(owned).map((w) => w.key)
   })
+  ipcMain.handle('ecosystem:shelf-appids', () => readShelfAppids())
   ipcMain.handle('ecosystem:sisters', () => readSisters())
 
   ipcMain.handle('scan:status', () => getStatus())

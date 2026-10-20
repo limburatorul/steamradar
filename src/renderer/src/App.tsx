@@ -27,6 +27,12 @@ export default function App(): React.JSX.Element {
   const [currency, setCurrency] = useState('€')
   // creste dupa fiecare scanare terminata si obliga ecranele sa reciteasca datele
   const [refreshKey, setRefreshKey] = useState(0)
+  // jocurile din Shelf, recitite la fiecare ecran deschis: un joc adaugat acolo apare fara restart
+  const [shelf, setShelf] = useState<Set<number>>(new Set())
+
+  useEffect(() => {
+    void window.api.shelfAppids().then((ids) => setShelf(new Set(ids)))
+  }, [page, refreshKey])
 
   const reloadStats = useCallback(() => void window.api.deals.stats().then(setStats), [])
 
@@ -228,6 +234,7 @@ export default function App(): React.JSX.Element {
         {page === 'radar' && (
           <DashboardView
             watched={watched}
+            shelf={shelf}
             onToggleWatch={toggleWatch}
             onOpen={setSelected}
             onGoTo={(s: Store, t: Tier) => {
@@ -248,6 +255,7 @@ export default function App(): React.JSX.Element {
             title={`Free right now on ${label}`}
             hint={`Nothing is at -100% on ${label} at the moment. I check every few minutes.`}
             watched={watched}
+            shelf={shelf}
             onToggleWatch={toggleWatch}
             onOpen={setSelected}
             refreshKey={refreshKey}
@@ -260,6 +268,7 @@ export default function App(): React.JSX.Element {
             title={`Under ${low} on ${label}`}
             hint="No deal under the threshold. Scan, or lower the discount filter."
             watched={watched}
+            shelf={shelf}
             onToggleWatch={toggleWatch}
             onOpen={setSelected}
             refreshKey={refreshKey}
@@ -272,6 +281,7 @@ export default function App(): React.JSX.Element {
             title={`Under ${high} on ${label}`}
             hint="Nothing in the band between the two thresholds."
             watched={watched}
+            shelf={shelf}
             onToggleWatch={toggleWatch}
             onOpen={setSelected}
             refreshKey={refreshKey}
@@ -284,6 +294,7 @@ export default function App(): React.JSX.Element {
             title={`Top discounts on ${label}`}
             hint="The catalog is empty — start a scan."
             watched={watched}
+            shelf={shelf}
             onToggleWatch={toggleWatch}
             onOpen={setSelected}
             refreshKey={refreshKey}
@@ -301,6 +312,7 @@ export default function App(): React.JSX.Element {
         {page === 'history' && (
           <HistoryView
             watched={watched}
+            shelf={shelf}
             onToggleWatch={toggleWatch}
             onOpen={setSelected}
             refreshKey={refreshKey}

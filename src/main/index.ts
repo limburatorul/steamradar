@@ -7,6 +7,7 @@ import { writeCard } from './ecosystem'
 import { setWindowOpener } from './notify'
 import { cancelScan, onStatus, scanFull, schedule, stopSchedule } from './scanner'
 import { getCatalog, shareWatchlist } from './store'
+import { WATCH_SHARE_EVERY_MS } from './diff'
 import { ensureNotificationIdentity } from './shortcut'
 import { beginQuit, createTray, destroyTray, isQuitting, refreshTray } from './tray'
 import {
@@ -108,6 +109,7 @@ app.whenReady().then(async () => {
   // cartea din folderul comun Protagonist Labs, la fiecare pornire (vezi ecosystem.ts)
   writeCard()
   void shareWatchlist()
+  setInterval(() => void shareWatchlist(), WATCH_SHARE_EVERY_MS)
 
   // curat executabilele vechi ramase langa cel curent, cu reincercari:
   // procesul inlocuit poate tine inca lock pe fisierul lui

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { Deal, DealEvent, EpicFreeGame, StatsSummary, Store, Tier } from '@shared/types'
 import { STORE_LABEL, TIER_LABEL } from '@shared/types'
-import DealRow from '../components/DealRow'
+import DealRow, { ownedInShelf } from '../components/DealRow'
 import EpicCard from '../components/EpicCard'
 import { eventToDeal, num, timeAgo } from '../format'
 
 interface Props {
   watched: Set<string>
+  /** Appid-urile Steam din Shelf. */
+  shelf: Set<number>
   onToggleWatch: (deal: Deal) => void
   onOpen: (deal: Deal) => void
   onGoTo: (store: Store, tier: Tier) => void
@@ -19,6 +21,7 @@ interface Props {
 /** Ce s-a schimbat de cand n-ai fost atent, la toate trei magazinele deodata. */
 export default function DashboardView({
   watched,
+  shelf,
   onToggleWatch,
   onOpen,
   onGoTo,
@@ -112,6 +115,7 @@ export default function DashboardView({
                   key={d.key}
                   deal={d}
                   watched={watched.has(d.key)}
+                  inShelf={ownedInShelf(shelf, d)}
                   onToggleWatch={onToggleWatch}
                   onOpen={onOpen}
                 />
@@ -136,6 +140,7 @@ export default function DashboardView({
                 key={e.id}
                 deal={eventToDeal(e)}
                 watched={watched.has(e.key)}
+                inShelf={ownedInShelf(shelf, e)}
                 onToggleWatch={onToggleWatch}
                 onOpen={onOpen}
                 aside={

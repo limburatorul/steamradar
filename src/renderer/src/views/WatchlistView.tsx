@@ -89,16 +89,9 @@ export default function WatchlistView({
                   watched
                   onToggleWatch={onToggleWatch}
                   onOpen={onOpen}
+                  inShelf={inShelf.has(w.key)}
                   aside={
                     <>
-                      {inShelf.has(w.key) && (
-                        <span
-                          className="event-time"
-                          title="You own it in Shelf, so it does not alert"
-                        >
-                          In your Shelf
-                        </span>
-                      )}
                       <span className="event-time">added {timeAgo(w.addedAt)}</span>
                       {!onSale && <span className="event-time">not on sale right now</span>}
                       <label className="note" style={{ display: 'flex', gap: 5 }}>

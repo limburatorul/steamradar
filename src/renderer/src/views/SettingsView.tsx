@@ -453,7 +453,7 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
                 {sisters.installed.includes('shelf') ? (
                   <p>
                     Shelf · games you own there do not alert and are marked “In your Shelf” in the
-                    watchlist; Shelf shows your watched games that are on sale
+                    deal lists and the watchlist; Shelf shows your watched games that are on sale
                   </p>
                 ) : (
                   <p>

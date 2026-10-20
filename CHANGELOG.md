@@ -3,6 +3,34 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.8.0] — 2026-10-20
+
+### Adăugat
+
+- Listele de oferte (Radar, pragurile Steam și GOG, Top discounts, Alert history)
+  marchează discret „In your Shelf” jocurile Steam pe care le ai deja în Shelf
+  (același appid). Nu le ascund; până acum eticheta era doar în lista de urmărire.
+
+### Schimbat
+
+- Jocurile din Shelf contează doar când Shelf e instalat: cartea lui din
+  `ProtagonistLabs\apps\shelf.json` există și exe-ul ei e pe disc. Un
+  `shelf.games.json` rămas de la un Shelf dezinstalat nu mai oprește alerte.
+- `shelf.games.json` e citit cu bănuială: BOM tolerat, `schema` diferită de 1,
+  `updated` lipsă, invalid sau în viitor cu mai mult de o zi, fișier peste
+  16 MB, tipuri greșite pe jocuri, nume peste 500 de caractere = ignorate.
+  Vechimea fișierului nu contează: Shelf îl rescrie doar la pornire și când
+  biblioteca se schimbă, iar un joc deținut rămâne deținut.
+- `steamradar.watch.json` se rescrie și la fiecare 12 ore cât rulează aplicația,
+  chiar fără schimbări (Shelf 3.65 ignoră fișierul după 48 h), iar `appid` e scris
+  doar ca număr întreg pozitiv.
+
+### Securitate
+
+- O cale de exe dintr-o carte de aplicație care nu e locală (UNC `\\server\...`,
+  `\\?\`, `\\.\`) e refuzată înainte de orice acces la disc, ca „Works with”
+  să nu facă Windows să contacteze un server din rețea.
+
 ## [0.7.3] — 2026-10-18
 
 ### Schimbat

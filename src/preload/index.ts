@@ -54,6 +54,9 @@ const api = {
     inShelf: (): Promise<string[]> => ipcRenderer.invoke('watch:in-shelf')
   },
 
+  /** Appid-urile Steam ale jocurilor din Shelf; gol cand Shelf nu e instalat. */
+  shelfAppids: (): Promise<number[]> => ipcRenderer.invoke('ecosystem:shelf-appids'),
+
   /** Aplicatiile Protagonist Labs instalate pe PC, pentru "Works with". */
   sisters: (): Promise<{ installed: string[]; bought: boolean }> =>
     ipcRenderer.invoke('ecosystem:sisters'),

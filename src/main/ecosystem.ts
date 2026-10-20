@@ -1,7 +1,7 @@
 import { app } from 'electron'
-import { existsSync, promises as fs } from 'node:fs'
+import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { shelfOwned } from './diff'
+import { installed, readShared, readShelf, shelfIndex, shelfOwned } from './diff'
 
 /**
  * Ecosistemul Protagonist Labs: un folder comun in `%APPDATA%\ProtagonistLabs`,
@@ -18,15 +18,6 @@ const ID = 'steamradar'
 
 function root(): string {
   return path.join(app.getPath('appData'), 'ProtagonistLabs')
-}
-
-async function readCommon(rel: string): Promise<Record<string, unknown> | null> {
-  try {
-    const json = JSON.parse(await fs.readFile(path.join(root(), rel), 'utf8'))
-    return json && json.schema === 1 ? json : null
-  } catch {
-    return null
-  }
 }
 
 /** Scrie atomic, ca orice cititor sa vada fie fisierul vechi, fie pe cel nou. */
@@ -75,7 +66,12 @@ export function writeWatchShare(items: WatchShare[]): Promise<void> {
 
 /** Citit la fiecare scanare, deci un joc adaugat in Shelf conteaza de la urmatoarea. */
 export async function readShelfOwned(): Promise<ReturnType<typeof shelfOwned>> {
-  return shelfOwned(await readCommon('data/shelf.games.json'))
+  return shelfOwned(await readShelf(root()))
+}
+
+/** Appid-urile Steam din Shelf, pentru eticheta "In your Shelf" din listele de oferte. */
+export async function readShelfAppids(): Promise<number[]> {
+  return [...shelfIndex(await readShelf(root())).ids]
 }
 
 export interface Sisters {
@@ -95,9 +91,8 @@ export async function readSisters(): Promise<Sisters> {
   }
   for (const name of names) {
     if (!name.endsWith('.json')) continue
-    const card = await readCommon(`apps/${name}`)
-    if (!card || typeof card.id !== 'string' || typeof card.exe !== 'string') continue
-    if (!existsSync(card.exe)) continue
+    const card = await readShared(path.join(root(), 'apps', name))
+    if (!card || typeof card.id !== 'string' || !installed(card)) continue
     out.installed.push(card.id)
     if (card.paid === true && card.edition === 'full') out.bought = true
   }

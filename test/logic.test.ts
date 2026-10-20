@@ -2,7 +2,20 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { applyQuery } from '../src/shared/query.ts'
 import { liveEpic } from '../src/shared/epic.ts'
-import { diff, shelfOwned, tierOf, toNotify } from '../src/main/diff.ts'
+import {
+  diff,
+  localExe,
+  readShelf,
+  shareAppid,
+  shelfIndex,
+  shelfOwned,
+  tierOf,
+  toNotify,
+  WATCH_SHARE_EVERY_MS
+} from '../src/main/diff.ts'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import type { AppConfig, Deal, EpicFreeGame } from '../src/shared/types.ts'
 
 const cfg = { thresholdLow: 5, thresholdHigh: 10, showAdult: false } as AppConfig
@@ -106,7 +119,7 @@ test('Shelf: jocurile detinute nu suna, nici din praguri, nici din lista de urma
   const shelf = JSON.parse(
     JSON.stringify({
       schema: 1,
-      updated: '2026-10-15T09:00:00Z',
+      updated: new Date().toISOString(),
       games: [
         { id: 's1', name: 'Hades', store: 'steam', steamAppId: 1145360, saves: [], canMove: true },
         { id: 'e1', name: 'DOOM™: Eternal', store: 'epic', saves: [], canMove: false },
@@ -137,4 +150,115 @@ test('Shelf: jocurile detinute nu suna, nici din praguri, nici din lista de urma
   for (const bad of [null, {}, { games: 'x' }, { games: [null, 5] }]) {
     assert.equal(toNotify(events, cfgN, shelfOwned(bad)).length, 5)
   }
+})
+
+test('Shelf: fisierul cere schema 1, updated valid (oricat de vechi), tipuri corecte', () => {
+  const now = Date.parse('2026-10-20T12:00:00Z')
+  const game = { name: 'Hades', steamAppId: 1145360 }
+  const ids = (o: object): number[] => [...shelfIndex({ schema: 1, games: [game], ...o }, now).ids]
+  assert.deepEqual(ids({ updated: '2026-10-20T11:00:00Z' }), [1145360])
+  // Shelf nedeschis de 60 de zile: jocurile tot ale omului sunt
+  assert.deepEqual(ids({ updated: '2026-08-21T12:00:00Z' }), [1145360])
+  assert.deepEqual(ids({ updated: '2026-10-21T11:00:00Z' }), [1145360]) // ceas decalat cu 23 h
+  assert.deepEqual(ids({ updated: '2026-10-25T00:00:00Z' }), []) // in viitor: n-ar expira niciodata
+  assert.deepEqual(ids({ updated: 'ieri' }), [])
+  assert.deepEqual(ids({ updated: 1760000000000 }), [])
+  assert.deepEqual(ids({}), [])
+  assert.deepEqual(ids({ updated: '2026-10-20T11:00:00Z', schema: 2 }), [])
+  // tipuri gresite pe jocuri: sarite, fara exceptii
+  const odd = shelfIndex(
+    {
+      schema: 1,
+      updated: '2026-10-20T11:00:00Z',
+      games: [
+        { name: 'A', steamAppId: '570' },
+        { name: 'B', steamAppId: 1.5 },
+        { name: 'C', steamAppId: -3 },
+        { name: 42, steamAppId: 10 },
+        { name: 'x'.repeat(501), steamAppId: 11 },
+        'joc',
+        { name: 'Celeste', steamAppId: 504230 }
+      ]
+    },
+    now
+  )
+  assert.deepEqual([...odd.ids], [504230])
+  assert.deepEqual([...odd.noIdNames].sort(), ['a', 'b', 'c'])
+})
+
+test('localExe: doar cai locale cu litera de disc, refuzate UNC si dispozitive', () => {
+  assert.equal(localExe(String.raw`C:\Program Files\Shelf\Shelf.exe`), true)
+  assert.equal(localExe('d:/Games/Shelf.EXE'), true)
+  for (const bad of [
+    String.raw`\\server\share\Shelf.exe`,
+    '//server/share/Shelf.exe',
+    String.raw`\\?\C:\Shelf.exe`,
+    String.raw`\\.\pipe\x.exe`,
+    String.raw`\\?\UNC\server\share\Shelf.exe`,
+    'Shelf.exe',
+    'C:Shelf.exe',
+    String.raw`C:\Shelf\notes.txt`,
+    42,
+    null
+  ]) {
+    assert.equal(localExe(bad), false, String(bad))
+  }
+})
+
+test('readShelf: fisiere sintetice pe disc, cu card, fara card, BOM, gunoi', async () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'steamradar-shelf-'))
+  mkdirSync(path.join(root, 'apps'))
+  mkdirSync(path.join(root, 'data'))
+  const exe = path.join(root, 'Shelf.exe')
+  writeFileSync(exe, '')
+  const card = (o: object): void =>
+    writeFileSync(path.join(root, 'apps', 'shelf.json'), JSON.stringify({ schema: 1, id: 'shelf', exe, ...o }))
+  const games = (text: string): void => writeFileSync(path.join(root, 'data', 'shelf.games.json'), text)
+  const good = JSON.stringify({
+    schema: 1,
+    updated: new Date().toISOString(),
+    games: [{ name: 'Hades', steamAppId: 1145360 }]
+  })
+  const owned = async (): Promise<number[]> => [...shelfIndex(await readShelf(root)).ids]
+
+  games(good)
+  assert.deepEqual(await owned(), []) // fara card: Shelf nu e instalat
+  card({})
+  assert.deepEqual(await owned(), [1145360])
+  games(String.fromCharCode(0xfeff) + good) // BOM de la Notepad
+  assert.deepEqual(await owned(), [1145360])
+
+  card({ exe: path.join(root, 'lipsa.exe') }) // dezinstalat
+  assert.deepEqual(await owned(), [])
+  card({ exe: String.raw`\\127.0.0.1\c$\Shelf.exe` }) // UNC: refuzat fara acces la retea
+  assert.deepEqual(await owned(), [])
+  card({ id: 'stash' })
+  assert.deepEqual(await owned(), [])
+  card({ schema: 2 })
+  assert.deepEqual(await owned(), [])
+  writeFileSync(path.join(root, 'apps', 'shelf.json'), '{ not json')
+  assert.deepEqual(await owned(), [])
+
+  card({})
+  for (const bad of ['', 'null', '[]', '{"schema":1,"games":"x"}', '{ trunchiat']) {
+    games(bad)
+    assert.deepEqual(await owned(), [], bad)
+  }
+  // peste 16 MB: refuzat inainte de JSON.parse
+  games(good.slice(0, -1) + ',"pad":"' + 'x'.repeat(16 * 1024 * 1024) + '"}')
+  assert.deepEqual(await owned(), [])
+  rmSync(root, { recursive: true })
+})
+
+test('steamradar.watch.json: appid doar numar intreg, rescris des fata de pragul de 48 h al Shelf', () => {
+  assert.equal(shareAppid(1145360), 1145360)
+  for (const bad of ['1145360', null, undefined, 0, -5, 1.5, NaN, {}]) {
+    assert.equal(shareAppid(bad), undefined, String(bad))
+  }
+  // ce ajunge in fisier: JSON.stringify pastreaza numarul, iar undefined dispare
+  const json = JSON.parse(JSON.stringify({ appid: shareAppid(570) }, null, 2))
+  assert.equal(typeof json.appid, 'number')
+  assert.equal('appid' in JSON.parse(JSON.stringify({ appid: shareAppid('570') })), false)
+  // doua rescrieri pierdute tot raman sub 48 h
+  assert.ok(WATCH_SHARE_EVERY_MS * 3 < 48 * 3_600_000)
 })
