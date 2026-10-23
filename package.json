@@ -1,6 +1,6 @@
 {
   "name": "steamradar",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "SteamRadar",
   "main": "out/main/index.js",
   "author": "Protagonist Labs",
@@ -52,13 +52,12 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "perMachine": false,
+      "perMachine": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "SteamRadar",
       "artifactName": "SteamRadar-${version}-setup.${ext}",
-      "include": "build/installer.nsh",
-      "packElevateHelper": false
+      "include": "build/installer.nsh"
     }
   }
 }

@@ -16,6 +16,10 @@ import { portableDir } from './updater'
  * procesul. E singura cale acceptata de Windows pentru o aplicatie fara
  * instalator. Se scrie o singura data si tinteste .exe-ul portabil real
  * (`PORTABLE_EXECUTABLE_DIR`), nu copia din `%TEMP%`.
+ *
+ * Copia instalata nu mai scrie nimic (0.9.0): instalatorul per-masina pune
+ * scurtatura in Start Menu-ul comun, cu acelasi AUMID; una a mea, per-user,
+ * ar aparea a doua oara in Start.
  */
 
 export const APP_USER_MODEL_ID = 'ro.steamradar.app'
@@ -27,20 +31,15 @@ function shortcutPath(): string {
   return path.join(app.getPath('appData'), 'Microsoft/Windows/Start Menu/Programs', SHORTCUT_NAME)
 }
 
-/** Executabilul spre care are rost sa arate scurtatura, sau null in dezvoltare. */
-function exeTarget(): string | null {
-  const dir = portableDir()
-  if (dir) {
-    // wrapper-ul portabil pune calea completa a exe-ului real in
-    // PORTABLE_EXECUTABLE_FILE; process.execPath ar arata spre copia din %TEMP%
-    const file = process.env.PORTABLE_EXECUTABLE_FILE
-    if (file && existsSync(file)) return file
-    const name = process.env.PORTABLE_EXECUTABLE_APP_FILENAME
-    const candidate = name ? path.join(dir, name) : null
-    return candidate && existsSync(candidate) ? candidate : null
-  }
-  // build impachetat obisnuit: execPath e chiar aplicatia
-  return app.isPackaged ? process.execPath : null
+/** Exe-ul portabil real, spre care arata scurtatura. */
+function exeTarget(dir: string): string | null {
+  // wrapper-ul portabil pune calea completa a exe-ului real in
+  // PORTABLE_EXECUTABLE_FILE; process.execPath ar arata spre copia din %TEMP%
+  const file = process.env.PORTABLE_EXECUTABLE_FILE
+  if (file && existsSync(file)) return file
+  const name = process.env.PORTABLE_EXECUTABLE_APP_FILENAME
+  const candidate = name ? path.join(dir, name) : null
+  return candidate && existsSync(candidate) ? candidate : null
 }
 
 export interface IdentityStatus {
@@ -69,13 +68,16 @@ function computeIdentity(): IdentityStatus {
 
   if (process.platform !== 'win32') return { ok: true, reason: 'not Windows' }
 
-  const target = exeTarget()
-  if (!target) {
+  if (!app.isPackaged) {
     return {
       ok: false,
       reason: 'running unpackaged — Windows will show the Electron name on notifications'
     }
   }
+  const dir = portableDir()
+  if (!dir) return { ok: true, reason: 'the installer put the Start Menu shortcut in place' }
+  const target = exeTarget(dir)
+  if (!target) return { ok: false, reason: 'could not find the portable exe for the Start Menu shortcut' }
 
   const link = shortcutPath()
   try {

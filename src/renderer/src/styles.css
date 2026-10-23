@@ -993,3 +993,159 @@ input[type='checkbox'] {
   font-variant-numeric: tabular-nums;
   padding-bottom: 4px;
 }
+
+/* What's new — the studio's shared layout (Shelf's modal.css): releases by month on the left,
+   the chosen one on the right under a 960 x 170 banner. */
+.dialog.whats-new {
+  width: min(1212px, 94vw);
+  height: 80vh;
+  max-height: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.whats-new-head {
+  margin: 0;
+  padding: 16px 18px 12px;
+  font-size: 17px;
+}
+.whats-new-body {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  padding: 0 18px;
+}
+.whats-new-nav {
+  width: 170px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.whats-new-month {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+  margin: 12px 8px 4px;
+}
+.whats-new-nav > div:first-child .whats-new-month {
+  margin-top: 0;
+}
+.whats-new-nav-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-1);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.whats-new-nav-item:hover {
+  background: var(--bg-2);
+}
+.whats-new-nav-item.active {
+  background: var(--bg-3);
+  border-left-color: var(--accent);
+  color: var(--text-0);
+  font-weight: 600;
+}
+.whats-new-nav-meta {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-2);
+}
+.whats-new-list {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+.whats-new-banner {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  aspect-ratio: 960 / 170;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.whats-new-banner-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.whats-new-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.6) 0, rgba(0, 0, 0, 0.35) 260px, transparent 420px);
+}
+.whats-new-banner-text {
+  position: relative;
+  z-index: 2;
+  padding: 28px 28px 0;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+.whats-new-banner-kicker {
+  font-size: 18px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+.whats-new-banner-version {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.05;
+}
+.whats-new-banner-title {
+  margin-top: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  opacity: 0.9;
+  max-width: 55%;
+}
+.whats-new-entry {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.whats-new-entry:last-child {
+  border-bottom: 0;
+}
+.whats-new-version {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--accent-light);
+  margin-bottom: 6px;
+}
+.whats-new-date {
+  margin-left: 8px;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.whats-new-entry ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-1);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.whats-new-entry li + li {
+  margin-top: 4px;
+}
+.whats-new-actions {
+  justify-content: flex-end;
+  padding-top: 12px;
+}

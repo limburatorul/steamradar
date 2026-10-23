@@ -9,6 +9,7 @@ import SettingsView from './views/SettingsView'
 import WatchlistView from './views/WatchlistView'
 import UpdateBanner from './components/UpdateBanner'
 import GameDialog from './components/GameDialog'
+import WhatsNewDialog from './components/WhatsNewDialog'
 import Backdrop from './components/Backdrop'
 import { clock, num } from './format'
 
@@ -29,6 +30,17 @@ export default function App(): React.JSX.Element {
   const [refreshKey, setRefreshKey] = useState(0)
   // jocurile din Shelf, recitite la fiecare ecran deschis: un joc adaugat acolo apare fara restart
   const [shelf, setShelf] = useState<Set<number>>(new Set())
+  const [whatsNew, setWhatsNew] = useState(false)
+
+  // o data dupa o actualizare, sau cerut din tray; vazut doar la inchidere
+  useEffect(() => {
+    void window.api.whatsNew.pending().then((p) => p && setWhatsNew(true))
+    return window.api.whatsNew.onOpen(() => setWhatsNew(true))
+  }, [])
+  const closeWhatsNew = useCallback(() => {
+    setWhatsNew(false)
+    void window.api.whatsNew.seen()
+  }, [])
 
   useEffect(() => {
     void window.api.shelfAppids().then((ids) => setShelf(new Set(ids)))
@@ -319,7 +331,7 @@ export default function App(): React.JSX.Element {
             onSeen={reloadStats}
           />
         )}
-        {page === 'settings' && config && <SettingsView config={config} onChange={patchConfig} />}
+        {page === 'settings' && config && <SettingsView config={config} onChange={patchConfig} onWhatsNew={() => setWhatsNew(true)} />}
       </main>
 
       {selected && (
@@ -331,6 +343,7 @@ export default function App(): React.JSX.Element {
           onClose={() => setSelected(null)}
         />
       )}
+      {whatsNew && <WhatsNewDialog version={version} onClose={closeWhatsNew} />}
       </div>
     </>
   )

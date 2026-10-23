@@ -16,7 +16,9 @@ import { applyQuery } from '../src/shared/query.ts'
 import { liveEpic } from '../src/shared/epic.ts'
 import { tierOf } from '../src/main/diff.ts'
 
-const DATA = process.argv[2] ?? join(process.env.APPDATA ?? '', 'steamradar')
+// read only; the data moved to ProtagonistLabs in 0.9.0
+const NEW_DATA = join(process.env.APPDATA ?? '', 'ProtagonistLabs', 'SteamRadar')
+const DATA = process.argv[2] ?? (existsSync(NEW_DATA) ? NEW_DATA : join(process.env.APPDATA ?? '', 'steamradar'))
 const OUT = process.argv[3] ?? 'docs/screenshots'
 const CHROME = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',

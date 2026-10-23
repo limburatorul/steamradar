@@ -173,30 +173,27 @@ the same.
 Windows does not take the name from the window title, nor from `productName`. The
 toast shows the name of the Start Menu shortcut whose AppUserModelID matches the
 one the process declares; without it, it says "electron.app.Electron" or does not
-appear at all. So the app writes itself a Start Menu shortcut on first start
+appear at all. The installer writes that shortcut (in the Start Menu for every
+user, since 0.9.0). The portable build writes its own on first start
 (`src/main/shortcut.ts`), targeting the real portable `.exe`, not the copy in
 `%TEMP%`. In development there is nothing to target, so there the name stays
 Electron's; Settings says so explicitly.
 
-## Auto-update
+## Installing and updating
 
-On the portable build only, following the pattern proven in Game Browser: it
-checks `https://api.github.com/repos/limburatorul/steamradar/releases/latest` 8
-seconds after start (silently if there is nothing new), downloads the `.exe` into
-`PORTABLE_EXECUTABLE_DIR`, checks the size against the one GitHub announces,
-starts the new process detached and closes the current one. Deleting the old
-versions is done by the next start, with retries at 5 and 20 seconds, because the
-replaced process may still hold a lock on its file.
+`SteamRadar-<version>-setup.exe` installs for every user in
+`C:\Program Files\ProtagonistLabs\SteamRadar`, so Windows asks for administrator
+rights when you install and at each update. It replaces an old per-user copy
+(0.6–0.8, in `%LOCALAPPDATA%\Programs\SteamRadar`) by running that copy's
+uninstaller, which removes the program and its shortcuts but never the data.
 
-Two traps already paid for in Game Browser, not to be rediscovered:
-`process.execPath` points to the temporary copy in `%TEMP%`, not to the real exe;
-and the sweep deletes **any** exe with a lower version in the same folder,
-including test builds kept there on purpose.
-
-The source of the versions is https://github.com/limburatorul/steamradar: every
-release carries `SteamRadar-<version>-portabil.exe`. Besides the check at start,
-it checks again every 45 minutes (configurable), because the app sits in the tray
-for days.
+The app checks `https://api.github.com/repos/limburatorul/steamradar/releases/latest`
+a few seconds after start and then every hour (configurable). An update downloads
+the installer, checks its size and the SHA-256 GitHub publishes, starts it through
+Windows' permission prompt and closes; the installer runs silently and starts
+SteamRadar again. Refuse the prompt and SteamRadar keeps running and says the
+update was not installed. The portable build (`-portabil.exe`, still in each
+release) is offered the visible installer once and copies its data first.
 
 ## Running it
 
@@ -214,14 +211,16 @@ Other commands:
   the parsers still work, including whether Steam and GOG answer in the same
   currency. Run it first when the app stops finding anything: the source breaks
   more often than the code.
-- `npm run dist`: builds `release/SteamRadar-<ver>-portabil.exe`
+- `npm run dist`: builds `release/SteamRadar-<ver>-setup.exe` and `release/SteamRadar-<ver>-portabil.exe`
 - `node scripts/make-icons.mjs`: regenerates the icons (drawn from code)
 
 ## Where the data lives
 
 In the portable build, in `SteamRadar-Date/` next to the executable, so the app
 can be moved to a USB stick together with its history. Otherwise in
-`%APPDATA%/steamradar`.
+`%APPDATA%\ProtagonistLabs\SteamRadar` (until 0.8, `%APPDATA%\steamradar`: the
+0.9 installer renames it, and the app does the same at start if it is still
+there; a folder that already has data is never mixed into).
 
 - `config.json`: tiers, intervals, notifications, appearance
 - `history.json`: the price over time for the games that reached the tiers

@@ -3,6 +3,33 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.9.0] — 2026-10-23
+
+### Schimbat
+
+- **Se instalează pentru toți utilizatorii PC-ului**, în
+  `C:\Program Files\ProtagonistLabs\SteamRadar`, lângă celelalte aplicații
+  Protagonist Labs. Windows cere permisiunea la instalare și la fiecare
+  actualizare.
+- **Datele se mută singure** din `%APPDATA%\steamradar` în
+  `%APPDATA%\ProtagonistLabs\SteamRadar`, o singură dată, prin redenumire:
+  instalatorul o face, iar aplicația o face la pornire dacă n-a apucat.
+  Un folder nou care are deja date nu e amestecat; un fișier blocat lasă
+  mutarea pentru pornirea următoare. Nimic nu se copiază pe jumătate.
+- Copia veche per-utilizator (`%LOCALAPPDATA%\Programs\SteamRadar`) și
+  scurtăturile ei se șterg; scurtăturile noi sunt în Start Menu pentru toți.
+  Copia instalată nu-și mai scrie singură scurtătura din Start Menu (ar fi
+  apărut de două ori); portabilul o scrie în continuare.
+- Actualizarea pornește instalatorul prin fereastra de permisiune a Windows;
+  dacă e refuzată, SteamRadar merge mai departe și spune „Update not installed”.
+- Cartea din `ProtagonistLabs\apps\steamradar.json` are câmpul `data`.
+
+### Adăugat
+
+- **What's new**: toate versiunile, pe luni, în aplicație (merge și offline).
+  Se deschide o dată după o actualizare și oricând din meniul din tray sau din
+  Settings → Updates.
+
 ## [0.8.0] — 2026-10-20
 
 ### Adăugat

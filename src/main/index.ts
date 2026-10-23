@@ -1,6 +1,8 @@
-import { app, BrowserWindow, nativeImage, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, nativeImage, shell } from 'electron'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { loadConfig } from './config'
+import { dataRoot, loadConfig } from './config'
+import { moveDataFolder } from './datafolder'
 import { ICON_APP } from './icon'
 import { registerIpc } from './ipc'
 import { writeCard } from './ecosystem'
@@ -19,6 +21,14 @@ import {
 } from './updater'
 
 let mainWindow: BrowserWindow | null = null
+
+// Datele stau in %APPDATA%\ProtagonistLabs\SteamRadar (Ecosistem v3). Inainte de orice citire din
+// userData, inclusiv lock-ul de instanta unica; o rulare din sursa foloseste folderul nou, dar nu-l muta.
+const dataDir = path.join(app.getPath('appData'), 'ProtagonistLabs', 'SteamRadar')
+app.setPath(
+  'userData',
+  app.isPackaged ? moveDataFolder(path.join(app.getPath('appData'), 'steamradar'), dataDir) : dataDir
+)
 
 // o singura instanta: doua procese ar bate amandoua in Steam si ar dubla toast-urile
 const gotLock = app.requestSingleInstanceLock()
@@ -85,10 +95,50 @@ function createWindow(): void {
 
 app.on('second-instance', showWindow)
 
+/*
+ * What's new: o data dupa o actualizare. Versiunea vazuta sta in `last-seen-version`; lipsa ei, cu
+ * un config.json de dinainte de pornirea asta, e o actualizare de la <=0.8. O instalare noua nu
+ * are ce anunta. Se marcheaza vazut doar la inchiderea ferestrei, nu la deschidere.
+ */
+const seenFile = (): string => path.join(app.getPath('userData'), 'last-seen-version')
+let whatsNewPending = false
+
+function markWhatsNewSeen(): void {
+  whatsNewPending = false
+  try {
+    writeFileSync(seenFile(), app.getVersion(), 'utf8')
+  } catch {
+    // profil needitabil: fereastra mai apare o data la pornirea urmatoare
+  }
+}
+
+function checkWhatsNew(): void {
+  let seen = ''
+  try {
+    seen = readFileSync(seenFile(), 'utf8').trim()
+  } catch {
+    // nimic inca
+  }
+  if (seen === app.getVersion()) return
+  if (seen || existsSync(path.join(dataRoot(), 'config.json'))) whatsNewPending = true
+  else markWhatsNewSeen()
+}
+
+/** Din tray: fereastra, apoi dialogul (o fereastra abia creata il cere singura prin `whatsnew:pending`). */
+function openWhatsNew(): void {
+  whatsNewPending = true
+  showWindow()
+  mainWindow?.webContents.send('whatsnew:open')
+}
+
+ipcMain.handle('whatsnew:pending', () => whatsNewPending)
+ipcMain.handle('whatsnew:seen', () => markWhatsNewSeen())
+
 app.whenReady().then(async () => {
   // declara AUMID-ul si scrie scurtatura din Start Menu care ii da numele:
   // fara ea, Windows pune "electron.app.Electron" deasupra notificarilor
   ensureNotificationIdentity()
+  checkWhatsNew()
 
   const cfg = await loadConfig()
   app.setLoginItemSettings({
@@ -101,8 +151,8 @@ app.whenReady().then(async () => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update:available', info)
   })
   registerIpc(() => mainWindow)
-  createTray(showWindow)
-  onStatus(() => void refreshTray(showWindow))
+  createTray(showWindow, openWhatsNew)
+  onStatus(() => void refreshTray(showWindow, openWhatsNew))
 
   if (!process.argv.includes('--hidden') || !cfg.startMinimized) createWindow()
 

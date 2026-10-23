@@ -30,9 +30,10 @@ function sisterUrl(id: string, code?: string): string {
 interface Props {
   config: AppConfig
   onChange: (patch: Partial<AppConfig>) => void
+  onWhatsNew: () => void
 }
 
-export default function SettingsView({ config, onChange }: Props): React.JSX.Element {
+export default function SettingsView({ config, onChange, onWhatsNew }: Props): React.JSX.Element {
   const [folder, setFolder] = useState('')
   const [version, setVersion] = useState('')
   const [identity, setIdentity] = useState<{ ok: boolean; reason: string } | null>(null)
@@ -388,8 +389,8 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
             <h2>Updates</h2>
             <p className="hint">
               SteamRadar updates itself: it downloads the installer, checks it against the checksum
-              GitHub publishes, installs it over the current copy and starts again. The portable
-              build is offered the installer once and keeps its data.
+              GitHub publishes, asks Windows for permission, installs it for everyone on this PC and
+              starts again. The portable build is offered the installer once and keeps its data.
             </p>
             <div className="row">
               <label className="k">Check every</label>
@@ -407,6 +408,7 @@ export default function SettingsView({ config, onChange }: Props): React.JSX.Ele
               <button onClick={checkUpdate} disabled={checking}>
                 {checking ? 'Checking…' : 'Check for updates'}
               </button>
+              <button onClick={onWhatsNew}>What’s new</button>
               <span className="note" title={update?.error}>
                 {update
                   ? update.available

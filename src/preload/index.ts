@@ -102,6 +102,18 @@ const api = {
     clear: (): Promise<void> => ipcRenderer.invoke('history:clear')
   },
 
+  whatsNew: {
+    /** De aratat acum: o actualizare nevazuta sau cerut din tray. */
+    pending: (): Promise<boolean> => ipcRenderer.invoke('whatsnew:pending'),
+    /** Doar la inchidere: notele nevazute revin la pornirea urmatoare. */
+    seen: (): Promise<void> => ipcRenderer.invoke('whatsnew:seen'),
+    onOpen: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('whatsnew:open', listener)
+      return () => ipcRenderer.removeListener('whatsnew:open', listener)
+    }
+  },
+
   version: (): Promise<string> => ipcRenderer.invoke('app:version'),
   openExternal: (url: string): Promise<boolean> => ipcRenderer.invoke('shell:open-external', url),
   /** Pagina jocului in clientul Steam, cu pagina web ca rezerva. */

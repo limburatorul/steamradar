@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { installed, readShared, readShelf, shelfIndex, shelfOwned } from './diff'
+import { dataRoot } from './config'
 
 /**
  * Ecosistemul Protagonist Labs: un folder comun in `%APPDATA%\ProtagonistLabs`,
@@ -42,6 +43,8 @@ export function writeCard(): void {
     version: app.getVersion(),
     // portabilul ruleaza dintr-un folder temporar; exe-ul real e cel de aici
     exe: process.env.PORTABLE_EXECUTABLE_FILE || process.execPath,
+    // folderul de date: cel din %APPDATA%\ProtagonistLabs, sau SteamRadar-Date langa portabil
+    data: dataRoot(),
     edition: 'free',
     paid: false,
     page: 'https://protagonistlabs.app/steamradar/',

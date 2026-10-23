@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { spawn } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -9,22 +9,21 @@ import { dataRoot } from './config'
 
 /**
  * Auto-actualizare prin instalator, dupa tiparul din File Labs (verificarea
- * SHA-256) si Shelf (predarea catre un .cmd detasat):
+ * SHA-256):
  *
  *  - descarc `SteamRadar-<ver>-setup.exe` in %TEMP%, ii verific marimea si
- *    SHA-256-ul publicat de GitHub, apoi predau unui .cmd detasat si ies: nimic
- *    din acest proces nu poate supravietui instalatorului care ii suprascrie exe-ul.
- *    Scriptul asteapta sa se deblocheze exe-ul, ruleaza instalatorul si abia apoi
- *    porneste aplicatia (un NSIS silentios nu o mai porneste el).
+ *    SHA-256-ul publicat de GitHub.
+ *  - de la 0.9.0 instalatorul e per-masina (Program Files\ProtagonistLabs\SteamRadar)
+ *    si cere drepturi de administrator. Pornit cu CreateProcess (spawn, sau `call`
+ *    dintr-un .cmd) da eroarea 740, deci il pornesc prin ShellExecute
+ *    (`Start-Process -Verb RunAs`) si Windows cere UAC. Ies abia dupa ce a pornit;
+ *    instalatorul inchide ce a mai ramas si, cu `--force-run`, porneste aplicatia
+ *    la loc ca userul obisnuit. Daca omul refuza UAC, aplicatia merge mai departe
+ *    si spune ca actualizarea nu s-a instalat.
  *  - silentios doar cand e deja instalata. Varianta portabila ruleaza din
  *    %TEMP%\<random>\, deci n-are un folder de instalare de refolosit: ea primeste
  *    o singura data instalatorul vizibil, iar datele ei se copiaza inainte in
  *    %APPDATA%, ca istoricul sa nu se piarda.
- *
- * Capcanele din Shelf, platite acolo: bucla de asteptare foloseste doar comenzi
- * cmd (un `tasklist | find` intr-un proces fara consola se blocheaza la nesfarsit),
- * `/D=` trebuie sa fie ultimul parametru si fara ghilimele, iar instalatorul se
- * ruleaza cu `call`, nu cu `start /wait`.
  */
 
 const UPDATE_REPO = 'limburatorul/steamradar'
@@ -124,9 +123,6 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
   }
 }
 
-/** Aproximativ doua minute, la ~0,35 s pe iteratie (masurat in Shelf). */
-const EXE_UNLOCK_MAX_TRIES = 340
-
 /** La trecerea de la portabil: datele de langa exe merg in %APPDATA%, o singura data. */
 async function migratePortableData(): Promise<void> {
   const from = dataRoot()
@@ -144,27 +140,28 @@ async function migratePortableData(): Promise<void> {
   }
 }
 
-async function runInstallerAndRelaunch(installer: string, silent: boolean): Promise<void> {
-  const exe = process.execPath
-  const script = path.join(app.getPath('temp'), `steamradar-update-${Date.now()}.cmd`)
-  const lines = [
-    '@echo off',
-    'set /a tries=0',
-    ':waitloop',
-    'set /a tries+=1',
-    `if %tries% gtr ${EXE_UNLOCK_MAX_TRIES} goto runinstaller`,
-    // exe-ul care ruleaza e blocat: daca il pot deschide pentru scriere, a iesit
-    `2>nul (>>"${exe}" call ) && goto runinstaller`,
-    'for /l %%i in (1,1,700000) do @rem',
-    'goto waitloop',
-    ':runinstaller',
-    silent ? `call "${installer}" /S /D=${path.dirname(exe)}` : `call "${installer}"`,
-    // instalatorul vizibil are propriul "Run SteamRadar" la final
-    silent ? `start "" "${exe}"` : '',
-    'del "%~f0"'
-  ].filter(Boolean)
-  await fs.writeFile(script, lines.join('\r\n'), 'utf-8')
-  spawn('cmd.exe', ['/c', script], { detached: true, stdio: 'ignore', windowsHide: true }).unref()
+/**
+ * Porneste instalatorul prin ShellExecute, cu UAC. True cand a pornit, false cand
+ * omul a refuzat sau n-a putut porni. Calea merge prin mediu, nu in comanda, ca
+ * un apostrof din numele userului sa n-o rupa. Silentios: fara /D= (calea vine din
+ * registry), iar `--force-run` porneste aplicatia la loc. Cel vizibil (portabilul)
+ * are propriul "Run SteamRadar" la final.
+ */
+function startInstaller(installer: string, silent: boolean): Promise<boolean> {
+  const args = silent ? " -ArgumentList '/S','--updated','--force-run'" : ''
+  return new Promise((resolve) => {
+    execFile(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        `try { Start-Process -FilePath $env:STEAMRADAR_SETUP${args} -Verb RunAs; exit 0 } catch { exit 1 }`
+      ],
+      { env: { ...process.env, STEAMRADAR_SETUP: installer }, windowsHide: true },
+      (err) => resolve(!err)
+    )
+  })
 }
 
 /**
@@ -224,8 +221,12 @@ export async function downloadAndRestart(
     const portable = portableDir() !== null
     if (portable) await migratePortableData()
 
-    onProgress({ phase: 'restarting', message: 'Starting the installer...' })
-    await runInstallerAndRelaunch(target, !portable)
+    onProgress({ phase: 'restarting', message: 'Starting the installer — Windows asks for permission...' })
+    if (!(await startInstaller(target, !portable))) {
+      const error = 'Update not installed: Windows did not get permission to install it.'
+      onProgress({ phase: 'error', message: error })
+      return { ok: false, error }
+    }
 
     setTimeout(() => app.quit(), 800)
     return { ok: true }

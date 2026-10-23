@@ -22,17 +22,17 @@ export function beginQuit(): void {
   quitting = true
 }
 
-export function createTray(showWindow: () => void): Tray {
+export function createTray(showWindow: () => void, openWhatsNew: () => void): Tray {
   const image = nativeImage.createFromBuffer(Buffer.from(ICON_TRAY, 'base64'))
   tray = new Tray(image)
   tray.setToolTip('SteamRadar')
   tray.on('click', showWindow)
   tray.on('double-click', showWindow)
-  void refreshTray(showWindow)
+  void refreshTray(showWindow, openWhatsNew)
   return tray
 }
 
-export async function refreshTray(showWindow: () => void): Promise<void> {
+export async function refreshTray(showWindow: () => void, openWhatsNew: () => void): Promise<void> {
   if (!tray) return
   const cfg = await loadConfig()
   const cat = await getCatalog()
@@ -72,6 +72,8 @@ export async function refreshTray(showWindow: () => void): Promise<void> {
       { label: `${epicFree} free on Epic`, enabled: false },
       { label: `${under5} under ${cfg.thresholdLow}`, enabled: false },
       { label: `${under10} under ${cfg.thresholdHigh}`, enabled: false },
+      { type: 'separator' },
+      { label: 'What’s new', click: openWhatsNew },
       { type: 'separator' },
       {
         label: 'Quit',
