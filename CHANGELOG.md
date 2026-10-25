@@ -3,6 +3,14 @@
 Formatul urmează [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/),
 versionarea e [SemVer](https://semver.org/lang/ro/).
 
+## [0.9.1] — 2026-10-25
+
+### Schimbat
+
+- **Icon nou**, mai luminos și mai ușor de găsit în taskbar: în exe, în
+  fereastră, în tray și sus în bara laterală, în locul semnului ◎.
+- **What's new arată o imagine pentru fiecare versiune**, deasupra notelor ei.
+
 ## [0.9.0] — 2026-10-23
 
 ### Schimbat

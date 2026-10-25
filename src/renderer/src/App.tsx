@@ -12,6 +12,7 @@ import GameDialog from './components/GameDialog'
 import WhatsNewDialog from './components/WhatsNewDialog'
 import Backdrop from './components/Backdrop'
 import { clock, num } from './format'
+import brandIcon from './assets/icon.png'
 
 type Page = 'radar' | 'free' | 'under5' | 'under10' | 'top' | 'epic' | 'watch' | 'history' | 'settings'
 
@@ -117,7 +118,7 @@ export default function App(): React.JSX.Element {
       <div className="app" data-glass={config?.glassStyle ?? 'glass'}>
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">◎</div>
+          <img className="brand-mark" src={brandIcon} alt="" />
           <div>
             <div className="brand-name">SteamRadar</div>
             <div className="brand-ver">{version}</div>

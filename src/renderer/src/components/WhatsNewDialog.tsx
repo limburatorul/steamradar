@@ -24,40 +24,17 @@ function groupReleases(entries: ChangelogEntry[]): Release[] {
   return releases
 }
 
-/** Culorile SteamRadar sub cateva randuri de oferte si o eticheta de pret, desenate, nu poza. */
-function Banner(): React.JSX.Element {
-  return (
-    <svg className="whats-new-banner-art" viewBox="0 0 960 170" aria-hidden="true">
-      <defs>
-        <linearGradient id="wn-bg" x1="0" y1="0" x2="1" y2=".6">
-          <stop offset="0" stopColor="#0f1115" />
-          <stop offset="1" stopColor="#16223a" />
-        </linearGradient>
-        <radialGradient id="wn-glow">
-          <stop offset="0" stopColor="#4c8bf5" stopOpacity=".45" />
-          <stop offset="1" stopColor="#4c8bf5" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <rect width="960" height="170" fill="url(#wn-bg)" />
-      <ellipse cx="760" cy="50" rx="280" ry="190" fill="url(#wn-glow)" />
-      <g transform="translate(540 22) rotate(-5 180 60)" opacity=".92">
-        <rect width="360" height="130" rx="12" fill="#101012" fillOpacity=".75" stroke="#7aabf8" strokeOpacity=".35" />
-        {[0, 1, 2].map((i) => (
-          <g key={i} transform={`translate(12 ${12 + i * 38})`}>
-            <rect width="64" height="28" rx="4" fill={['#2f4f8f', '#3a3f4a', '#2b3a2a'][i]} />
-            <rect x="76" y="6" width={[150, 120, 170][i]} height="6" rx="3" fill="#ececee" opacity=".8" />
-            <rect x="76" y="17" width="70" height="5" rx="2.5" fill="#a5a8ae" opacity=".6" />
-            <rect x="268" y="4" width="64" height="20" rx="4" fill={i === 0 ? '#a4d007' : '#4c8bf5'} opacity=".9" />
-          </g>
-        ))}
-      </g>
-      <g transform="translate(880 30) rotate(18)">
-        <path d="M0 0 h46 l18 18 -18 18 h-46 z" fill="#a4d007" />
-        <circle cx="8" cy="18" r="4" fill="#0f1115" />
-      </g>
-    </svg>
-  )
+// Fiecare versiune are o poza facuta cu sablonul de bannere al studioului (Marketing\banners), 1920 x 340:
+// a ei, cu numele versiunii (assets/whats-new/0.9.webp), sau, daca nu are, poza lunii in care a iesit
+// (m10.webp). Poza n-are text, deci nu se scrie nimic peste ea.
+const PICTURES: Record<string, string> = {
+  '0.9': new URL('../assets/whats-new/0.9.webp', import.meta.url).href,
+  m08: new URL('../assets/whats-new/m08.webp', import.meta.url).href,
+  m09: new URL('../assets/whats-new/m09.webp', import.meta.url).href,
+  m10: new URL('../assets/whats-new/m10.webp', import.meta.url).href
 }
+
+const picture = (r: Release): string => PICTURES[r.minor] ?? PICTURES[`m${r.entries[0].date.slice(5, 7)}`]
 
 export default function WhatsNewDialog({ version, onClose }: { version: string; onClose: () => void }): React.JSX.Element {
   const releases = groupReleases(CHANGELOG)
@@ -105,12 +82,11 @@ export default function WhatsNewDialog({ version, onClose }: { version: string; 
           </nav>
           <div className="whats-new-list" key={release.minor}>
             <div className="whats-new-banner">
-              <Banner />
-              <div className="whats-new-banner-text">
-                <div className="whats-new-banner-kicker">What’s new in</div>
-                <div className="whats-new-banner-version">{release.minor}</div>
-                {release.title && <div className="whats-new-banner-title">{release.title}</div>}
-              </div>
+              <img
+                className="whats-new-banner-art"
+                src={picture(release)}
+                alt={`What’s new in ${release.minor}${release.title ? `: ${release.title}` : ''}`}
+              />
             </div>
             {release.entries.map((entry) => (
               <section key={entry.version} className="whats-new-entry">

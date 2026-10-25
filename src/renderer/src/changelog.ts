@@ -11,6 +11,14 @@ export interface ChangelogEntry {
 // every version bump; a new x.y.0 also gets a title for its banner. test/changelog.test.ts checks it.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.9.1',
+    date: '2026-10-25',
+    changes: [
+      'A new icon, brighter and easier to spot in the taskbar, in the tray and at the top of the window.',
+      'What’s new now shows a picture for each release, at the top of its notes.'
+    ]
+  },
+  {
     version: '0.9.0',
     date: '2026-10-23',
     title: 'One home, beside our other apps',

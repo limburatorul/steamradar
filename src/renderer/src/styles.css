@@ -277,12 +277,6 @@ input[type='checkbox'] {
 .brand-mark {
   width: 26px;
   height: 26px;
-  border-radius: 7px;
-  background: rgba(var(--accent-rgb), 0.18);
-  display: grid;
-  place-items: center;
-  color: var(--accent-light);
-  font-size: 15px;
 }
 
 .brand-name {
@@ -1083,37 +1077,8 @@ input[type='checkbox'] {
   inset: 0;
   width: 100%;
   height: 100%;
-}
-.whats-new-banner::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.6) 0, rgba(0, 0, 0, 0.35) 260px, transparent 420px);
-}
-.whats-new-banner-text {
-  position: relative;
-  z-index: 2;
-  padding: 28px 28px 0;
-  color: #fff;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
-}
-.whats-new-banner-kicker {
-  font-size: 18px;
-  font-weight: 600;
-  opacity: 0.85;
-}
-.whats-new-banner-version {
-  font-size: 44px;
-  font-weight: 700;
-  line-height: 1.05;
-}
-.whats-new-banner-title {
-  margin-top: 8px;
-  font-size: 15px;
-  font-weight: 500;
-  opacity: 0.9;
-  max-width: 55%;
+  object-fit: cover;
+  display: block;
 }
 .whats-new-entry {
   margin-bottom: 18px;
